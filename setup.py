@@ -31,7 +31,6 @@ setuptools.setup(
     packages=setuptools.find_packages(),
 
     install_requires=[
-        "django==3.2.19"
     ],
 
     setup_requires=[
