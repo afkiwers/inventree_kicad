@@ -44,4 +44,6 @@ setuptools.setup(
             "KiCadAPIPlugin = inventree_kicad.KiCadLibraryPlugin:KiCadLibraryPlugin"
         ]
     },
+    
+    include_package_data=True,
 )
