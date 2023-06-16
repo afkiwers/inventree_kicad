@@ -12,7 +12,7 @@ setuptools.setup(
 
     version=PLUGIN_VERSION,
 
-    author="afkiwers",
+    author="Andre Iwers",
 
     author_email="iwers11@gmail.com",
 
@@ -30,6 +30,8 @@ setuptools.setup(
 
     packages=setuptools.find_packages(),
 
+    install_requires=[ ],
+
     setup_requires=[
         "wheel",
         "twine",
@@ -42,6 +44,4 @@ setuptools.setup(
             "KiCadAPIPlugin = inventree_kicad.KiCadLibraryPlugin:KiCadLibraryPlugin"
         ]
     },
-
-    include_package_data=True,
 )
