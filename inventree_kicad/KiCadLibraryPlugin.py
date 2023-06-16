@@ -10,9 +10,8 @@ import datetime
 
 from django.conf.urls import url
 
-from django.urls import include, path
+from django.urls import include
 from rest_framework import viewsets
-from rest_framework.reverse import reverse
 
 from plugin import InvenTreePlugin
 from plugin.mixins import (UrlsMixin, AppMixin)
@@ -49,15 +48,16 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, InvenTreePlugin):
         queryset = PartCategory.objects.all()
 
         def get_queryset(self):
+
             test = self.request.query_params
             print(test)
 
             queryset = PartCategory.objects.all()
             excluded = []
 
-            for q in queryset:
-                if not q.get_parts(cascade=False):
-                    excluded.append(q.pk)
+            # for q in queryset:
+            #     if not q.get_parts(cascade=False):
+            #         excluded.append(q.pk)
 
             queryset = queryset.exclude(id__in=excluded)
 

@@ -10,7 +10,7 @@ class SelectedCategory(models.Model):
     """Categories which are used in Kicad."""
 
     class Meta:
-        app_label = "inventree_kicad"
+        app_label = 'inventree_kicad'
 
     category = models.ForeignKey(
         PartCategory,
