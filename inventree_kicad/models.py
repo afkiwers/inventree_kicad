@@ -5,12 +5,11 @@ from django.utils.translation import gettext_lazy as _
 
 from part.models import PartCategory
 
+from .KiCadLibraryPlugin import KiCadLibraryPlugin
+
 
 class SelectedCategory(models.Model):
     """Categories which are used in Kicad."""
-
-    class Meta:
-        app_label = 'inventree_kicad'
 
     category = models.ForeignKey(
         PartCategory,

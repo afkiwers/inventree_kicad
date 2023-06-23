@@ -50,6 +50,32 @@ class KicadPartSerializer(serializers.ModelSerializer):
         return paras
 
 
+class KicadPreViewPartSerializer(serializers.ModelSerializer):
+    class Meta:
+        """Metaclass defining serializer fields"""
+        model = Part
+
+        # fields = [f.name for f in Part._meta.fields]
+
+        fields = [
+            'pk',
+            'name',
+        ]
+
+    pk = serializers.SerializerMethodField('get_pk')
+    name = serializers.SerializerMethodField('get_name')
+
+    def get_api_url(self):
+        """Return the API url associated with this serializer"""
+        return reverse_lazy('api-kicad-part-list')
+
+    def get_name(self, part):
+        return part.full_name
+
+    def get_pk(self, part):
+        return f'{part.pk}'
+
+
 class KicadCategorySerializer(serializers.ModelSerializer):
     class Meta:
         """Metaclass defining serializer fields"""
