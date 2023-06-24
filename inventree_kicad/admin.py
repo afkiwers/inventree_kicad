@@ -3,8 +3,12 @@ from __future__ import unicode_literals
 
 from django.contrib import admin
 
-from part.models import PartCategory
+# from part.models import PartCategory
 from .models import SelectedCategory
+
+from rest_framework import routers, viewsets
+
+from part.models import PartParameterTemplate, PartCategory, Part
 
 
 class SelectedCategoryAdmin(admin.ModelAdmin):

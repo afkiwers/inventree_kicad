@@ -4,7 +4,7 @@ from rest_framework.reverse import reverse_lazy
 from part.models import Part, PartCategory, PartParameterTemplate
 
 
-class KicadPartSerializer(serializers.ModelSerializer):
+class KicadDetailedPartSerializer(serializers.ModelSerializer):
     class Meta:
         """Metaclass defining serializer fields"""
         model = Part
@@ -85,6 +85,7 @@ class KicadCategorySerializer(serializers.ModelSerializer):
             'name',
         ]
 
+    pk = serializers.SerializerMethodField('get_pk')
     name = serializers.SerializerMethodField('get_name')
 
     def get_name(self, category):
@@ -92,6 +93,9 @@ class KicadCategorySerializer(serializers.ModelSerializer):
             "/", "->")
 
         return name
+
+    def get_pk(self, category):
+        return f'{category.pk}'
 
 
 class KicadPartParameterTemplateSerializer(serializers.ModelSerializer):
