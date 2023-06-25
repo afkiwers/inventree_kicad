@@ -38,32 +38,32 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
 
     MIN_VERSION = '0.11.0'
 
-    SETTINGS = {
-        'FOOTPRINT': {
-            'name': _('Key for footprint field'),
-            'description':  _('Kicad will look for this key to copy this to the FOOTPRINT field'),
-            'default': 'Footprint',
-        },
-        'SYMBOL': {
-            'name': _('Key for symbol field'),
-            'description':  _('Kicad will look for this key to copy this to the SYMBOL field'),
-            'default': 'Symbol',
-        },
-        'DATASHEET': {
-            'name': _('Key for datasheet field'),
-            'description':  _('Kicad will look for this key to copy this to the DATSHEET field'),
-            'default': 'Datasheet',
-        },
-        'VALUE': {
-            'name': _('Key for value field'),
-            'description': _('Kicad will look for this key to copy this to the VALUE field'),
-            'default': 'Value',
-        },
-    }
-
     def setup_urls(self):
         """Returns the URLs defined by this plugin."""
 
         return [
             url(r'', include(router_kicad.urls)),
         ]
+
+    # SETTINGS = {
+    #     'FOOTPRINT': {
+    #         'name': _('Key for footprint field'),
+    #         'description':  _('Kicad will look for this key to copy this to the FOOTPRINT field'),
+    #         'default': 'Footprint',
+    #     },
+    #     'SYMBOL': {
+    #         'name': _('Key for symbol field'),
+    #         'description':  _('Kicad will look for this key to copy this to the SYMBOL field'),
+    #         'default': 'Symbol',
+    #     },
+    #     'DATASHEET': {
+    #         'name': _('Key for datasheet field'),
+    #         'description':  _('Kicad will look for this key to copy this to the DATASHEET field'),
+    #         'default': 'Datasheet',
+    #     },
+    #     'VALUE': {
+    #         'name': _('Key for value field'),
+    #         'description': _('Kicad will look for this key to copy this to the VALUE field'),
+    #         'default': 'Value',
+    #     },
+    # }
