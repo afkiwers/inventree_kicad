@@ -31,7 +31,7 @@ class PartViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = Part.objects.all()
-        category_id = self.request.GET.get('table_id')
+        category_id = self.request.GET.get('category_id')
         part_id = self.request.GET.get('id')
 
         # general this will be a bulk transfer for the tree view. To speed things up only return bare minimum.
@@ -47,5 +47,5 @@ class PartViewSet(viewsets.ModelViewSet):
 
 
 router_kicad = routers.DefaultRouter()
-router_kicad.register(r'category', CategoryViewSet, basename='kicad-category')
-router_kicad.register(r'part', PartViewSet, basename='kicad-parts')
+router_kicad.register(r'categories', CategoryViewSet, basename='kicad-category')
+router_kicad.register(r'parts', PartViewSet, basename='kicad-parts')
