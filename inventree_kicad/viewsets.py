@@ -1,6 +1,6 @@
 from rest_framework import routers, viewsets
 
-from part.models import PartParameterTemplate, PartCategory, Part
+from part.models import PartCategory, Part
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -27,21 +27,22 @@ class PartViewSet(viewsets.ModelViewSet):
     from .serializers import KicadDetailedPartSerializer, KicadPreViewPartSerializer
 
     # general serialiser in use
-    serializer_class = KicadPreViewPartSerializer
+    serializer_class = KicadDetailedPartSerializer
 
     def get_queryset(self):
         queryset = Part.objects.all()
-        category_id = self.request.GET.get('category_id')
-        part_id = self.request.GET.get('id')
+        category_id = self.request.GET.get('category')
+        # part_id = self.request.GET.get('id')
 
         # general this will be a bulk transfer for the tree view. To speed things up only return bare minimum.
         if category_id:
+            self.serializer_class = self.KicadPreViewPartSerializer
             category = PartCategory.objects.get(id=category_id)
             queryset = category.get_parts()
 
-        if part_id:
-            self.serializer_class = self.KicadDetailedPartSerializer
-            queryset = queryset.filter(id=part_id)
+        # if part_id:
+        #     self.serializer_class = self.KicadDetailedPartSerializer
+        #     queryset = queryset.filter(id=part_id)
 
         return queryset
 
