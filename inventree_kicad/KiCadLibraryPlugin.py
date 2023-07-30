@@ -7,6 +7,7 @@ corresponding parts within the Kicad environment.
 
 """
 import datetime
+import os
 
 from django.conf.urls import url
 
@@ -37,6 +38,8 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
     WEBSITE = "https://www.aioz.com.au"
 
     MIN_VERSION = '0.11.0'
+
+    os.environ['KICAD_PLUGIN_GET_SUB_PARTS'] = 'True'
 
     def setup_urls(self):
         """Returns the URLs defined by this plugin."""

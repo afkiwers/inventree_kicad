@@ -42,6 +42,33 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         paras['Inventree'] = f'{part.pk}'
         paras['Notes'] = f'{part.notes}' if part.notes else ""
 
+        try:
+            paras['Reference'] = part.full_name.split('_')[0]
+            if len(part.full_name.split('_')) <= 1:
+                paras['Reference'] = "X"
+        except:
+            paras['Reference'] = "X"
+
+        try:
+            paras['Value'] = part.full_name.split('_')[1]
+        except:
+            paras['Value'] = part.full_name
+
+        try:
+            paras['Size'] = part.full_name.split('_')[2]
+        except:
+            pass
+
+        try:
+            paras['Power'] = part.full_name.split('_')[3]
+        except:
+            pass
+
+        try:
+            paras['Tolerance'] = part.full_name.split('_')[4]
+        except:
+            pass
+
         idx = 1
         for a in part.attachments.all():
             paras[f'attachments_{idx}'] = f'{a}'
