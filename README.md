@@ -27,10 +27,10 @@ Opening the admin backend, one can add [categories](#select-categories-which-sho
 
 ## FAQ
 
-### Why does this plugin needs the App Mixin?
+### Why does this plugin need the App Mixin?
 
 This plugin uses the App Mixin to add a custom model to the database to manage the selected categories. Otherwise, Kicad symbol chooser would be cluttered with every single category (See [Categories](#select-categories-which-show-up-in-kicad))
 
-### Why does this plugin needs the Url Mixin?
+### Why does this plugin need the Url Mixin?
 
 This plugin uses the Url Mixin to expose custom API endpoints which are conform with KiCads REST API requirements.
