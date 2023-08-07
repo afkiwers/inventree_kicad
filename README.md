@@ -10,7 +10,7 @@ KiCad EDA conform API endpoint [InvenTree](https://inventree.org) plugin for KiC
 
 Install this plugin as follows:
 
-1. Make sure you allow the use of the url integration and app integration (see [Why does this plugin need the app mixin?](#why-does-this-plugin-need-the-app-mixin))
+1. Make sure you allow the use of the url integration and app integration (see [Why does this plugin need the app mixin?](#why-does-this-plugin-need-the-app-mixin?))
 
 2. Goto Settings > Plugins > Install Plugin, set `inventree-kicad-plugin` as package name and `git+https://github.com/afkiwers/inventree-kicad-plugin` as source URL, confirm and click submit.
 
