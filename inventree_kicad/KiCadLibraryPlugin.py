@@ -31,9 +31,10 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
 
     VERSION = "0.0.1"
 
-    NAME = "KiCadLibraryPlugin"
-    SLUG = "kicad"
     TITLE = "KiCad Library Endpoint"
+    SLUG = "kicad-library-plugin"
+    NAME = "KiCadLibraryPlugin"
+
     PUBLISH_DATE = datetime.date(2023, 6, 9)
     WEBSITE = "https://www.aioz.com.au"
 
