@@ -1,0 +1,10 @@
+[run]
+omit = 
+  **/__init__.py
+  setup.py
+source = .
+
+[report]
+omit =
+  **/__init__.py
+  **/test_*.py

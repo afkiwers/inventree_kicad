@@ -1,9 +1,9 @@
 """
 
-API endpoint for Kicad REST API library.
+API endpoints for KiCad HTTP library.
 
 This plugin supplies the endpoints and data needed for KiCad to display selected categories and their
-corresponding parts within the Kicad environment.
+corresponding parts within the KiCad environment.
 
 """
 import datetime
@@ -18,22 +18,23 @@ from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin
 
 from django.utils.translation import gettext_lazy as _
 
-from plugins.inventree_kicad.viewsets import router_kicad
+from .viewsets import router_kicad
+from .version import KICAD_PLUGIN_VERSION
 
 
 # ---------------------------- KiCad API Endpoint Plugin --------------------------------------------------
-class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
+class InvenTreeKiCadPlugin(AppMixin, UrlsMixin, InvenTreePlugin):
     AUTHOR = "Andre Iwers"
 
     DESCRIPTION = _(
         "KiCad EDA conform API endpoint for KiCad's parts library tool. This plugin provides metadata only "
         "and requires matching symbol and footprint libraries within the KiCad EDA.")
 
-    VERSION = "0.0.1"
+    VERSION = KICAD_PLUGIN_VERSION
 
-    TITLE = "KiCad Library Endpoint"
-    SLUG = "kicad-library-plugin"
-    NAME = "KiCadLibraryPlugin"
+    TITLE = "KiCad HTTP Library Endpoints"
+    SLUG = "inventree-kicad-plugin"
+    NAME = "InvenTreeKiCadPlugin"
 
     PUBLISH_DATE = datetime.date(2023, 6, 9)
     WEBSITE = "https://www.aioz.com.au"

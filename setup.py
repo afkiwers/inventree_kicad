@@ -2,7 +2,7 @@
 
 import setuptools
 
-from inventree_kicad.version import PLUGIN_VERSION
+from inventree_kicad_plugin.version import KICAD_PLUGIN_VERSION
 
 with open('README.md', encoding='utf-8') as f:
     long_description = f.read()
@@ -42,7 +42,7 @@ setuptools.setup(
 
     entry_points={
         "inventree_plugins": [
-            "KiCadAPIPlugin = inventree_kicad.KiCadLibraryPlugin:KiCadLibraryPlugin"
+            "InvenTreeKiCadPlugin = inventree_kicad_plugin.InvenTreeKiCadPlugin:InvenTreeKiCadPlugin"
         ]
     },
     
