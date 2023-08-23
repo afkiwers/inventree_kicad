@@ -12,7 +12,7 @@ setuptools.setup(
 
     version=PLUGIN_VERSION,
 
-    author="Andre Iwers",
+    author="Andre F. K. Iwers",
 
     author_email="iwers11@gmail.com",
 
@@ -22,7 +22,7 @@ setuptools.setup(
 
     long_description_content_type='text/markdown',
 
-    keywords="inventree kicad",
+    keywords="inventree kicad rest api",
 
     url="https://github.com/afkiwers/inventree-kicad-plugin",
 
@@ -30,8 +30,8 @@ setuptools.setup(
 
     packages=setuptools.find_packages(),
 
-    # install_requires=[
-    # ],
+    install_requires=[
+    ],
 
     setup_requires=[
         "wheel",
@@ -42,7 +42,7 @@ setuptools.setup(
 
     entry_points={
         "inventree_plugins": [
-            "InvenTreeKiCadPlugin = inventree_kicad_plugin.InvenTreeKiCadPlugin:InvenTreeKiCadPlugin"
+            "InvenTreeKiCadPlugin = inventree_kicad_plugin.KiCadLibraryPlugin:KiCadLibraryPlugin"
         ]
     },
     

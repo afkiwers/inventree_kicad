@@ -1,5 +1,5 @@
 """Plugin to supply Kicad with metadata."""
 
-from .InvenTreeKiCadPlugin import InvenTreeKiCadPlugin
+from .KiCadLibraryPlugin import KiCadLibraryPlugin
 
-__all__ = [InvenTreeKiCadPlugin, ]
+__all__ = [KiCadLibraryPlugin, ]
