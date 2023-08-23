@@ -25,7 +25,7 @@ from . import views
 
 # ---------------------------- KiCad API Endpoint Plugin --------------------------------------------------
 class KiCadLibraryPlugin(UrlsMixin, AppMixin, InvenTreePlugin):
-    AUTHOR = "Andre Iwers"
+    AUTHOR = "Andre F. K. Iwers"
 
     DESCRIPTION = _(
         "KiCad EDA conform API endpoint for KiCad's parts library tool. This plugin provides metadata only "
