@@ -23,9 +23,10 @@ from plugins.inventree_kicad.viewsets import router_kicad, PartsPreViewList
 from .version import KICAD_PLUGIN_VERSION
 from . import views
 
+
 # ---------------------------- KiCad API Endpoint Plugin --------------------------------------------------
-class KiCadLibraryPlugin(UrlsMixin, AppMixin, InvenTreePlugin):
-    AUTHOR = "Andre F. K. Iwers"
+class KiCadLibraryPlugin(UrlsMixin, AppMixin, InvenTreePlugin, SettingsMixin):
+    AUTHOR = "Andre Iwers"
 
     DESCRIPTION = _(
         "KiCad EDA conform API endpoint for KiCad's parts library tool. This plugin provides metadata only "
@@ -43,10 +44,20 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, InvenTreePlugin):
     MIN_VERSION = '0.11.0'
 
     os.environ['KICAD_PLUGIN_GET_SUB_PARTS'] = 'True'
+    # os.environ['KICAD_PLUGIN_GET_SUB_PARTS'] = self.get_setting('KICAD_PLUGIN_GET_SUB_PARTS', cache=False)
+
+    SETTINGS = {
+        'KICAD_PLUGIN_GET_SUB_PARTS': {
+            'name': _('Enable Sub-Category Parts'),
+            'description': _(
+                'If enabled, plugin will return all the part under this category even if they are in a sub-category.'),
+            'validator': bool,
+            'default': True,
+        },
+    }
 
     def setup_urls(self):
         """Returns the URLs defined by this plugin."""
-
         return [
             re_path(r'settings.json', views.kicad_settings, name="kicad_Settings"),
             re_path('^parts/category/(?P<id>.+).json$', PartsPreViewList.as_view()),
