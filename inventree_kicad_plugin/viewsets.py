@@ -1,11 +1,21 @@
-from rest_framework import routers, viewsets, generics
 import os
+
+from rest_framework.pagination import PageNumberPagination
+from rest_framework import routers, viewsets, generics
 
 from part.models import PartCategory, Part
 
 
 def str2bool(v):
     return v.lower() in ("True", "true", "1")
+
+
+# Paginator is not actually used by KiCad but helps when manually browsing
+# through the parts
+class DefaultPagination(PageNumberPagination):
+    page_size = 25
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -54,6 +64,7 @@ class PartViewSet(viewsets.ModelViewSet):
 
     # general serialiser in use
     serializer_class = KicadDetailedPartSerializer
+    pagination_class = DefaultPagination
 
     def get_queryset(self):
         queryset = Part.objects.all()
