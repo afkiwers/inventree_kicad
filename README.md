@@ -4,15 +4,6 @@
 
 KiCad conform API endpoint plugin for [InvenTree](https://inventree.org)  to display and use InvenTree parts in KiCad's parts library tool. This plugin provides metadata only and requires matching symbol and footprint libraries within the KiCad EDA.
 
-## Installation
-
-Install this plugin as follows:
-
-1. Make sure you allow the use of the url integration and app integration (see [Why does this plugin need the app mixin?](#why-does-this-plugin-need-the-app-mixin))
-2. Goto Settings > Plugins > Install Plugin, set `inventree-kicad-plugin` as package name and `git+https://github.com/afkiwers/inventree-kicad-plugin` as source URL, confirm and click submit.
-3. Restart your server and activate the plugin.
-4. Stop your server and run `invoke update` (for docker installs it is `docker-compose inventree-server invoke update`). This ensures that all migrations run and the static files get collected. You can now start your server again and start using the plugin.
-
 ## Usage
 
 ### Select Categories which show up in KiCad
