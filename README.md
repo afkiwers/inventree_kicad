@@ -1,6 +1,6 @@
 # InvenTree KiCad - HTTP Library Plugin
 
-> ⚠️ This plugin is currently in alpha. Also, KiCad does not support REST APIs just yet but hopefully will soon.
+> ⚠️ This plugin is currently in an early alpha state and has a fair few hard-coded bits for proof-of-concept purposes.
 
 KiCad conform API endpoint plugin for [InvenTree](https://inventree.org)  to display and use InvenTree parts in KiCad's parts library tool. This plugin provides metadata only and requires matching symbol and footprint libraries within the KiCad EDA.
 
