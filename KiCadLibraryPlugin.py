@@ -59,7 +59,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, InvenTreePlugin, SettingsMixin):
     def setup_urls(self):
         """Returns the URLs defined by this plugin."""
         return [
-            re_path(r'settings.json', views.kicad_settings, name="kicad_Settings"),
-            re_path('^parts/category/(?P<id>.+).json$', PartsPreViewList.as_view()),
-            url(r'', include(router_kicad.urls)),
+            re_path(r'v1/settings.json', views.kicad_settings, name="kicad_Settings"),
+            re_path('^v1/parts/category/(?P<id>.+).json$', PartsPreViewList.as_view()),
+            url(r'^v1/', include(router_kicad.urls)),
         ]
