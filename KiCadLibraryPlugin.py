@@ -54,6 +54,16 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, InvenTreePlugin, SettingsMixin):
             'validator': bool,
             'default': True,
         },
+        'KICAD_SYMBOL_PARAMETER': {
+            'name': _('Symbol Parameter'),
+            'description': _('The part parameter to use for the symbol name.'),
+            'model': 'part.partparametertemplate',
+        },
+        'KICAD_FOOTPRINT_PARAMETER': {
+            'name': _('Footprint Parameter'),
+            'description': _('The part parameter to use for the footprint name.'),
+            'model': 'part.partparametertemplate',
+        }
     }
 
     def setup_urls(self):
