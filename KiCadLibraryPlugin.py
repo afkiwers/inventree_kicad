@@ -19,7 +19,7 @@ from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin
 
 from django.utils.translation import gettext_lazy as _
 
-from plugins.inventree_kicad.viewsets import router_kicad, PartsPreViewList
+from .viewsets import router_kicad, PartsPreViewList
 from .version import KICAD_PLUGIN_VERSION
 from . import views
 
