@@ -54,19 +54,29 @@ class PartsPreviewList(generics.ListAPIView):
     serializer_class = KicadPreviewPartSerializer
 
     def get_queryset(self):
-        queryset = Part.objects.all()
+        """Return a list of parts in the specified category
+        
+        We check if the plugin setting KICAD_ENABLE_SUBCATEGORY is enabled,
+        to determine if sub-category parts should be returned also
+        """
+
         category_id = self.kwargs['id']
 
-        # general this will be a bulk transfer for the tree view. To speed things up only return bare minimum.
-        if category_id:
-            try:
-                category = PartCategory.objects.get(id=category_id)
-                queryset = category.get_parts(cascade=str2bool(os.getenv('KICAD_PLUGIN_GET_SUB_PARTS')))
-            except:
-                queryset = Part.objects.none()
+        # Get a reference to the plugin instance
+        plugin = self.kwargs['plugin']
 
-        return queryset
+        cascade = str2bool(plugin.get_setting('KICAD_ENABLE_SUBCATEGORY', False))
 
+        # Get the part category
+        try:
+            category = PartCategory.objects.get(id=category_id)
+        except PartCategory.DoesNotExist:
+            return Part.objects.none()
+        
+        if cascade:
+            return Part.objects.filter(category__in=category.get_descendants(include_self=True))
+        else:
+            return Part.objects.filter(category=category)
 
 
 class PartDetail(generics.RetrieveAPIView):

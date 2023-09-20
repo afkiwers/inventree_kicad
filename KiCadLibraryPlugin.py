@@ -39,11 +39,8 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, InvenTreePlugin, SettingsMixin):
 
     MIN_VERSION = '0.11.0'
 
-    os.environ['KICAD_PLUGIN_GET_SUB_PARTS'] = 'True'
-    # os.environ['KICAD_PLUGIN_GET_SUB_PARTS'] = self.get_setting('KICAD_PLUGIN_GET_SUB_PARTS', cache=False)
-
     SETTINGS = {
-        'KICAD_PLUGIN_GET_SUB_PARTS': {
+        'KICAD_ENABLE_SUBCATEGORY': {
             'name': _('Enable Sub-Category Parts'),
             'description': _(
                 'If enabled, plugin will return all the part under this category even if they are in a sub-category.'),
@@ -76,9 +73,9 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, InvenTreePlugin, SettingsMixin):
         return [
             re_path(r'v1/', include([
                 re_path(r'settings.json', views.kicad_settings, name='kicad-settings'),
-                re_path('^parts/category/(?P<id>.+).json$', viewsets.PartsPreviewList.as_view(), name='kicad-part-preview-list'),
-                re_path('^parts/(?P<pk>.+).json$', viewsets.PartDetail.as_view(), name='kicad-part-detail'),
-                re_path('^categories/', viewsets.CategoryList.as_view(), name='kicad-category-list'),
+                re_path('^parts/category/(?P<id>.+).json$', viewsets.PartsPreviewList.as_view(), {'plugin': self}, name='kicad-part-preview-list'),
+                re_path('^parts/(?P<pk>.+).json$', viewsets.PartDetail.as_view(), {'plugin': self}, name='kicad-part-detail'),
+                re_path('^categories/', viewsets.CategoryList.as_view(), {'plugin': self}, name='kicad-category-list'),
                 url('', include(router.urls))
             ]))
         ]
