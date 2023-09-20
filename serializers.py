@@ -5,6 +5,26 @@ from part.models import Part, PartCategory, PartParameterTemplate
 
 
 class KicadDetailedPartSerializer(serializers.ModelSerializer):
+    """Custom model serializer for a single KiCad part instance"""
+
+    def get_api_url(self):
+        """Return the API url associated with this serializer"""
+        return reverse_lazy('api-kicad-part-list')
+    class Meta:
+        """Metaclass defining serializer fields"""
+        model = Part
+
+        fields = [
+            'id',
+            'name',
+            'symbolIdStr',
+            'fields',
+        ]
+
+    # Custom field definitions
+    symbolIdStr = serializers.SerializerMethodField('get_symbolIdStr')
+    fields = serializers.SerializerMethodField('get_kicad_fields')
+
     def get_footprint(self, part):
         footprint = ""
         try:
@@ -83,34 +103,8 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         return value
 
-    class Meta:
-        """Metaclass defining serializer fields"""
-        model = Part
-
-        fields = [
-            'id',
-            'name',
-            'symbolIdStr',
-            'fields',
-        ]
-
-    id = serializers.SerializerMethodField('get_id')
-    name = serializers.SerializerMethodField('get_name')
-    symbolIdStr = serializers.SerializerMethodField('get_symbolIdStr')
-    fields = serializers.SerializerMethodField('get_kicad_fields')
-
     def get_symbolIdStr(self, part):
         return self.get_symbol(part)
-
-    def get_api_url(self):
-        """Return the API url associated with this serializer"""
-        return reverse_lazy('api-kicad-part-list')
-
-    def get_id(self, part):
-        return f'{part.pk}'
-
-    def get_name(self, part):
-        return part.full_name
 
     def get_kicad_fields(self, part):
         kicad_default_fields = {
