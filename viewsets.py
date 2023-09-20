@@ -77,8 +77,3 @@ class PartViewSet(viewsets.ModelViewSet):
             queryset = category.get_parts(cascade=str2bool(os.getenv('KICAD_PLUGIN_GET_SUB_PARTS')))
 
         return queryset
-
-
-router_kicad = routers.DefaultRouter()
-router_kicad.register(r'categories', CategoryViewSet, basename='kicad-category')
-router_kicad.register(r'parts', PartViewSet, basename='kicad-parts')

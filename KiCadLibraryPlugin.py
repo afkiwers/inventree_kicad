@@ -10,18 +10,17 @@ import datetime
 import os
 
 from django.conf.urls import url
-from django.http import JsonResponse, HttpResponse
+from django.urls import include, re_path
+from django.utils.translation import gettext_lazy as _
 
-from django.urls import include, re_path, path
+from rest_framework import routers
 
 from plugin import InvenTreePlugin
 from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin
 
-from django.utils.translation import gettext_lazy as _
-
-from plugins.inventree_kicad.viewsets import router_kicad, PartsPreViewList
 from .version import KICAD_PLUGIN_VERSION
 from . import views
+from . import viewsets
 
 
 # ---------------------------- KiCad API Endpoint Plugin --------------------------------------------------
@@ -68,8 +67,16 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, InvenTreePlugin, SettingsMixin):
 
     def setup_urls(self):
         """Returns the URLs defined by this plugin."""
+
+        # Construct view set router
+        router = routers.DefaultRouter()
+        router.register(r'categories', viewsets.CategoryViewSet, basename='kicad-category')
+        router.register(r'parts', viewsets.PartViewSet, basename='kicad-parts')
+
         return [
-            re_path(r'v1/settings.json', views.kicad_settings, name="kicad_Settings"),
-            re_path('^v1/parts/category/(?P<id>.+).json$', PartsPreViewList.as_view()),
-            url(r'^v1/', include(router_kicad.urls)),
+            re_path(r'v1/', include([
+                re_path(r'settings.json', views.kicad_settings, name="kicad_Settings"),
+                re_path('^parts/category/(?P<id>.+).json$', viewsets.PartsPreViewList.as_view()),
+                url('', include(router.urls))
+            ]))
         ]
