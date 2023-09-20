@@ -13,7 +13,7 @@ def str2bool(v):
 # Paginator is not actually used by KiCad but helps when manually browsing
 # through the parts
 class DefaultPagination(PageNumberPagination):
-    page_size = 25
+    page_size = 10
     page_size_query_param = 'page_size'
     max_page_size = 100
 

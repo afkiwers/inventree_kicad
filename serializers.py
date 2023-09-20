@@ -25,6 +25,8 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
     symbolIdStr = serializers.SerializerMethodField('get_symbolIdStr')
     fields = serializers.SerializerMethodField('get_kicad_fields')
 
+    id = serializers.CharField(source='pk', read_only=True)
+
     def get_footprint(self, part):
         footprint = ""
         try:
@@ -91,9 +93,6 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         return reference
 
-    def get_description(self, part):
-        return part.notes
-
     def get_value(self, part):
         value = part.full_name
         try:
@@ -107,6 +106,9 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         return self.get_symbol(part)
 
     def get_kicad_fields(self, part):
+        """Return a set of fields to be used in the KiCad symbol library"""
+
+        # Default KiCad Fields
         kicad_default_fields = {
             'value': {
                 "value": self.get_value(part),
@@ -123,15 +125,16 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 "value": "R",
             },
             'description': {
-                "value": "I am a resistor",
+                "value": part.description,
                 "visible": 'False'
             },
             'keywords': {
-                "value": "RES passive smd",
+                "value": part.keywords,
                 "visible": 'False'
             },
         }
 
+        # Extra fields (to be implemented)
         kicad_custom_fields = {
             'custom1': {
                 "value": "MyText1",
