@@ -9,6 +9,9 @@ from part.models import PartCategory
 class SelectedCategory(models.Model):
     """Categories which are used in Kicad."""
 
+    class Meta:
+        app_label = 'inventree_kicad'
+
     category = models.OneToOneField(
         PartCategory,
         on_delete=models.CASCADE,

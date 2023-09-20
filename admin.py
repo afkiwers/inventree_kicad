@@ -8,17 +8,12 @@ from part.models import PartCategory
 
 
 class SelectedCategoryAdmin(admin.ModelAdmin):
+    """Admin class for the SelectedCategory model"""
+
     list_display = [f.name for f in SelectedCategory._meta.fields]
     list_per_page = 25
 
-    # remove already chosen categories
-    def get_form(self, request, obj=None, **kwargs):
-        form = super(SelectedCategoryAdmin, self).get_form(request, obj, **kwargs)
-        kicad_category_ids = SelectedCategory.objects.all().values_list('category__id', flat=True)
-
-        form.base_fields['category'].queryset = PartCategory.objects.exclude(id__in=kicad_category_ids)
-
-        return form
+    autocomplete_fields = ['category']
 
 
 admin.site.register(SelectedCategory, SelectedCategoryAdmin)

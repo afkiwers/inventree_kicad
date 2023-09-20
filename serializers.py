@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework.reverse import reverse_lazy
 
-from part.models import Part, PartCategory, PartParameterTemplate
+from part.models import Part, PartCategory, PartParameter, PartParameterTemplate
 
 
 class KicadDetailedPartSerializer(serializers.ModelSerializer):
@@ -10,6 +10,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
     def get_api_url(self):
         """Return the API url associated with this serializer"""
         return reverse_lazy('api-kicad-part-list')
+
     class Meta:
         """Metaclass defining serializer fields"""
         model = Part
@@ -27,7 +28,36 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
     id = serializers.CharField(source='pk', read_only=True)
 
+    def get_symbol(self, part):
+        """Return the symbol associated with this part.
+        
+        - First, check if the part has a symbol assigned (via parameter)
+        - Otherwise, fallback to the default symbol for the KiCad Category
+        """
+
+        symbol = ""
+
+        try:
+            part_type = part.full_name.split('_')[0]
+
+            if part_type == 'R':
+                symbol = "Device:R"
+
+            elif part_type == 'C':
+                symbol = "Device:C"
+
+        except:
+            pass
+
+        return symbol
+
     def get_footprint(self, part):
+        """Return the footprint associated with this part.
+        
+        - First, check if the part has a footprint assigned (via parameter)
+        - Otherwise, fallback to the default footprint for the KiCad Category
+        """
+
         footprint = ""
         try:
             part_type = part.full_name.split('_')[0]
@@ -64,23 +94,6 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             if p.name.lower() == 'datasheet':
                 return f'{p.data}'
         return ""
-
-    def get_symbol(self, part):
-        symbol = ""
-
-        try:
-            part_type = part.full_name.split('_')[0]
-
-            if part_type == 'R':
-                symbol = "Device:R"
-
-            elif part_type == 'C':
-                symbol = "Device:C"
-
-        except:
-            pass
-
-        return symbol
 
     def get_reference(self, part):
         reference = "X"
@@ -161,7 +174,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         return kicad_default_fields | kicad_custom_fields
 
 
-class KicadPreViewPartSerializer(serializers.ModelSerializer):
+class KicadPreviewPartSerializer(serializers.ModelSerializer):
     class Meta:
         """Metaclass defining serializer fields"""
         model = Part
@@ -188,23 +201,19 @@ class KicadPreViewPartSerializer(serializers.ModelSerializer):
 
 
 class KicadCategorySerializer(serializers.ModelSerializer):
+    """Custom model serializer for a single KiCad category instance"""
+
     class Meta:
         """Metaclass defining serializer fields"""
         model = PartCategory
         fields = [
             'id',
             'name',
-            'description'
+            'description',
+            'pathstring',
         ]
 
-    id = serializers.SerializerMethodField('get_id')
-    name = serializers.SerializerMethodField('get_name')
-
-    def get_name(self, category):
-        return category.pathstring
-
-    def get_id(self, category):
-        return f'{category.pk}'
+    id = serializers.CharField(source='pk', read_only=True)
 
 
 class KicadPartParameterTemplateSerializer(serializers.ModelSerializer):

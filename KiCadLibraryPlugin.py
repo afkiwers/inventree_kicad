@@ -19,9 +19,6 @@ from plugin import InvenTreePlugin
 from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin
 
 from .version import KICAD_PLUGIN_VERSION
-from . import views
-from . import viewsets
-
 
 # ---------------------------- KiCad API Endpoint Plugin --------------------------------------------------
 class KiCadLibraryPlugin(UrlsMixin, AppMixin, InvenTreePlugin, SettingsMixin):
@@ -68,6 +65,9 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, InvenTreePlugin, SettingsMixin):
     def setup_urls(self):
         """Returns the URLs defined by this plugin."""
 
+        from . import viewsets
+        from . import views
+
         # Construct view set router
         router = routers.DefaultRouter()
         router.register(r'categories', viewsets.CategoryViewSet, basename='kicad-category')
@@ -75,8 +75,10 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, InvenTreePlugin, SettingsMixin):
 
         return [
             re_path(r'v1/', include([
-                re_path(r'settings.json', views.kicad_settings, name="kicad_Settings"),
-                re_path('^parts/category/(?P<id>.+).json$', viewsets.PartsPreViewList.as_view()),
+                re_path(r'settings.json', views.kicad_settings, name='kicad-settings'),
+                re_path('^parts/category/(?P<id>.+).json$', viewsets.PartsPreviewList.as_view(), name='kicad-part-preview-list'),
+                re_path('^parts/(?P<pk>.+).json$', viewsets.PartDetail.as_view(), name='kicad-part-detail'),
+                re_path('^categories/', viewsets.CategoryList.as_view(), name='kicad-category-list'),
                 url('', include(router.urls))
             ]))
         ]

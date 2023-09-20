@@ -3,30 +3,38 @@ import os
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import routers, viewsets, generics
 
+from InvenTree.helpers import str2bool
+
 from part.models import PartCategory, Part
 
 
-def str2bool(v):
-    return v.lower() in ("True", "true", "1")
+class CategoryList(generics.ListAPIView):
+    """List of available KiCad categories"""
 
+    from .serializers import KicadCategorySerializer
 
-# Paginator is not actually used by KiCad but helps when manually browsing
-# through the parts
-class DefaultPagination(PageNumberPagination):
-    page_size = 10
-    page_size_query_param = 'page_size'
-    max_page_size = 100
+    serializer_class = KicadCategorySerializer
+
+    def get_queryset(self):
+        """Return only PartCategory objects which are mapped to a SelectedCategory"""
+
+        from .models import SelectedCategory
+
+        category_ids = SelectedCategory.objects.all().values_list('category_id', flat=True)
+
+        return PartCategory.objects.filter(pk__in=category_ids)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
+
     from .serializers import KicadCategorySerializer
 
     serializer_class = KicadCategorySerializer
     queryset = PartCategory.objects.all()
 
     def get_queryset(self):
-        from .models import SelectedCategory
 
+        from .models import SelectedCategory
         # Use user selected categories if available, otherwise display all.
         kicad_category_ids = SelectedCategory.objects.all().values_list('category_id', flat=True)
 
@@ -38,10 +46,12 @@ class CategoryViewSet(viewsets.ModelViewSet):
         return queryset
 
 
-class PartsPreViewList(generics.ListAPIView):
-    from .serializers import KicadPreViewPartSerializer
+class PartsPreviewList(generics.ListAPIView):
+    """Preview list for all parts in a given category"""
 
-    serializer_class = KicadPreViewPartSerializer
+    from .serializers import KicadPreviewPartSerializer
+
+    serializer_class = KicadPreviewPartSerializer
 
     def get_queryset(self):
         queryset = Part.objects.all()
@@ -49,7 +59,6 @@ class PartsPreViewList(generics.ListAPIView):
 
         # general this will be a bulk transfer for the tree view. To speed things up only return bare minimum.
         if category_id:
-            self.serializer_class = self.KicadPreViewPartSerializer
             try:
                 category = PartCategory.objects.get(id=category_id)
                 queryset = category.get_parts(cascade=str2bool(os.getenv('KICAD_PLUGIN_GET_SUB_PARTS')))
@@ -59,20 +68,37 @@ class PartsPreViewList(generics.ListAPIView):
         return queryset
 
 
+
+class PartDetail(generics.RetrieveAPIView):
+    """Detailed information endpoint for a single part instance.
+    
+    Here, the lookup id (pk) is the part id.
+    The custom plugin serializer formats the data into a KiCad compatible format.
+    """
+
+    from .serializers import KicadDetailedPartSerializer
+
+    serializer_class = KicadDetailedPartSerializer
+    queryset = Part.objects.all()
+
+
 class PartViewSet(viewsets.ModelViewSet):
-    from .serializers import KicadDetailedPartSerializer, KicadPreViewPartSerializer
+
+
+    from .serializers import KicadDetailedPartSerializer, KicadPreviewPartSerializer
 
     # general serialiser in use
     serializer_class = KicadDetailedPartSerializer
-    pagination_class = DefaultPagination
 
     def get_queryset(self):
         queryset = Part.objects.all()
         category_id = self.request.GET.get('category')
 
+        from .serializers import KicadPreviewPartSerializer
+
         # general this will be a bulk transfer for the tree view. To speed things up only return bare minimum.
         if category_id:
-            self.serializer_class = self.KicadPreViewPartSerializer
+            self.serializer_class = KicadPreviewPartSerializer
             category = PartCategory.objects.get(id=category_id)
             queryset = category.get_parts(cascade=str2bool(os.getenv('KICAD_PLUGIN_GET_SUB_PARTS')))
 
