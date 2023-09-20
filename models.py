@@ -15,3 +15,17 @@ class SelectedCategory(models.Model):
         related_name='get_enabled_kicad_categories',
         verbose_name=_('Category')
     )
+
+    default_symbol = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name=_('Default Symbol'),
+        help_text=_('Default symbol for this category, if not specified for an individual part'),
+    )
+
+    default_footprint = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name=_('Default Footprint'),
+        help_text=_('Default footprint for this category, if not specified for an individual part'),
+    )
