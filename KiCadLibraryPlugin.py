@@ -56,6 +56,11 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, InvenTreePlugin, SettingsMixin):
             'name': _('Footprint Parameter'),
             'description': _('The part parameter to use for the footprint name.'),
             'model': 'part.partparametertemplate',
+        },
+        'KICAD_REFERENCE_PARAMETER': {
+            'name': _('Reference Parameter'),
+            'description': _('The part parameter to use for the reference name.'),
+            'model': 'part.partparametertemplate',
         }
     }
 
