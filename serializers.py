@@ -11,6 +11,16 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         """Return the API url associated with this serializer"""
         return reverse_lazy('api-kicad-part-list')
 
+    def __init__(self, *args, **kwargs):
+        """Custom initialization for this seriailzer.
+        
+        As we need to have access to the parent plugin instance,
+        we pass it in via the kwargs.
+        """
+
+        self.plugin = kwargs.pop('plugin')
+        super().__init__(*args, **kwargs)
+
     class Meta:
         """Metaclass defining serializer fields"""
         model = Part
@@ -28,12 +38,36 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
     id = serializers.CharField(source='pk', read_only=True)
 
+    def get_kicad_category(self, part):
+        """For the provided part instance, find the associated SelectedCategory instance.
+        
+        If there are multiple possible associations, return the "deepest" one.
+        """
+
+        from .models import SelectedCategory
+
+        # If the selcted part does not have a category, return None
+        if not part.category:
+            return None
+
+        # Get the category tree for the selected part
+        categories = part.category.get_ancestors(include_self=True)
+
+        return SelectedCategory.objects.filter(category__in=categories).order_by('-category__level').first()
+
+
     def get_symbol(self, part):
         """Return the symbol associated with this part.
         
         - First, check if the part has a symbol assigned (via parameter)
         - Otherwise, fallback to the default symbol for the KiCad Category
         """
+
+        print("get_symbol for:", part)
+
+        kicad_category = self.get_kicad_category(part)
+
+        print("kicad_category:", kicad_category)
 
         symbol = ""
 

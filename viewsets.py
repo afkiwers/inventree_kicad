@@ -1,10 +1,8 @@
 import os
 
-from rest_framework.pagination import PageNumberPagination
-from rest_framework import routers, viewsets, generics
+from rest_framework import viewsets, generics
 
 from InvenTree.helpers import str2bool
-
 from part.models import PartCategory, Part
 
 
@@ -90,6 +88,13 @@ class PartDetail(generics.RetrieveAPIView):
 
     serializer_class = KicadDetailedPartSerializer
     queryset = Part.objects.all()
+
+    def get_serializer(self, *args, **kwargs):
+        """Add the parent plugin instance to the serializer contenxt"""
+
+        kwargs['plugin'] = self.kwargs['plugin']
+
+        return self.serializer_class(*args, **kwargs)
 
 
 class PartViewSet(viewsets.ModelViewSet):
