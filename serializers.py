@@ -32,17 +32,20 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             'fields',
         ]
 
-    # Custom field definitions
-    symbolIdStr = serializers.SerializerMethodField('get_symbolIdStr')
-    fields = serializers.SerializerMethodField('get_kicad_fields')
-
+    # Serializer field definitions
     id = serializers.CharField(source='pk', read_only=True)
+    symbolIdStr = serializers.SerializerMethodField('get_symbol')
+    fields = serializers.SerializerMethodField('get_kicad_fields')
 
     def get_kicad_category(self, part):
         """For the provided part instance, find the associated SelectedCategory instance.
         
         If there are multiple possible associations, return the "deepest" one.
         """
+
+        # Prevent duplicate lookups
+        if hasattr(self, 'kicad_category'):
+            return self.kicad_category
 
         from .models import SelectedCategory
 
@@ -53,8 +56,51 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         # Get the category tree for the selected part
         categories = part.category.get_ancestors(include_self=True)
 
-        return SelectedCategory.objects.filter(category__in=categories).order_by('-category__level').first()
+        self.kicad_category = SelectedCategory.objects.filter(category__in=categories).order_by('-category__level').first()
 
+        return self.kicad_category
+
+    def get_parameter_value(self, part, template_id, backup_value=''):
+        """Return the value of the specified parameter for the given part instance.
+
+        - If the parameter template is not specified, return empty string
+        - If the part does not have a matching parameter, return empty string
+        """
+
+        if template_id is None:
+            return backup_value
+
+        try:
+            parameter = PartParameter.objects.filter(part=part, template__pk=template_id).first()
+        except (ValueError, PartParameter.DoesNotExist):
+            parameter = None
+
+        if parameter:
+            return parameter.data
+        else:
+            return backup_value
+
+
+    def get_reference(self, part):
+        """Return the reference associated with this part
+        
+        - First, check if the part has a reference assigned (via parameter)
+        - Otherwise, fallback to the default reference for the KiCad Category
+        """
+
+        # Default value is "X"
+        reference = "X"
+
+        # Fallback to the "default" reference for the associated SelectedCategory instance
+        if kicad_category := self.get_kicad_category(part):
+            reference = kicad_category.default_reference
+        
+        # Find the reference parameter value associated with this part instance
+        template_id = self.plugin.get_setting('KICAD_REFERENCE_PARAMETER', None)
+
+        reference = self.get_parameter_value(part, template_id, backup_value=reference)
+
+        return reference
 
     def get_symbol(self, part):
         """Return the symbol associated with this part.
@@ -63,25 +109,17 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         - Otherwise, fallback to the default symbol for the KiCad Category
         """
 
-        print("get_symbol for:", part)
+        # By default, empty (unspecified) symbol value
+        symbol = ''
 
-        kicad_category = self.get_kicad_category(part)
+        # Fallback to the "default" symbol for the associated SelectedCategory instance
+        if kicad_category := self.get_kicad_category(part):
+            symbol = kicad_category.default_symbol
 
-        print("kicad_category:", kicad_category)
+        # Find the symbol parameter value associated with this part instance
+        template_id = self.plugin.get_setting('KICAD_SYMBOL_PARAMETER', None)
 
-        symbol = ""
-
-        try:
-            part_type = part.full_name.split('_')[0]
-
-            if part_type == 'R':
-                symbol = "Device:R"
-
-            elif part_type == 'C':
-                symbol = "Device:C"
-
-        except:
-            pass
+        symbol = self.get_parameter_value(part, template_id, backup_value=symbol)
 
         return symbol
 
@@ -93,64 +131,98 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         """
 
         footprint = ""
-        try:
-            part_type = part.full_name.split('_')[0]
 
-            if part_type == 'R':
-                if part.full_name.split('_')[2] == '0402':
-                    footprint = 'Resistor_SMD:R_0402_1005Metric'
+        if kicad_category := self.get_kicad_category(part):
+            footprint = kicad_category.default_footprint
+        
+        template_id = self.plugin.get_setting('KICAD_FOOTPRINT_PARAMETER', None)
 
-                if part.full_name.split('_')[2] == '0603':
-                    footprint = "Resistor_SMD:R_0603_1608Metric"
-
-                if part.full_name.split('_')[2] == '0805':
-                    footprint = 'Resistor_SMD:R_0805_2012Metric'
-
-            elif part_type == 'C':
-                footprint = "Capacitor_SMD:C_0805_2012Metric"
-
-                if part.full_name.split('_')[2] == '0402':
-                    footprint = 'Capacitor_SMD:C_0402_1005Metric'
-
-                if part.full_name.split('_')[2] == '0603':
-                    footprint = "Capacitor_SMD:C_0603_1608Metric"
-
-                if part.full_name.split('_')[2] == '0805':
-                    footprint = 'Capacitor_SMD:C_0805_2012Metric'
-
-        except:
-            pass
+        footprint = self.get_parameter_value(part, template_id, backup_value=footprint)
 
         return footprint
 
     def get_datasheet(self, part):
-        for p in part.get_parameters():
-            if p.name.lower() == 'datasheet':
-                return f'{p.data}'
+        """Return the datasheet associated with this part.
+        
+        Here, we look at the attachments associated with the part,
+        and return the first one which has a comment matching "datasheet"
+        """
+
+        datasheet = None
+
+        for attachment in part.attachments.all():
+            if attachment.comment.lower() == 'datasheet':
+                datasheet = attachment
+                break
+
+        if datasheet:
+            return datasheet.fully_qualified_url()
+
+        # Default, return empty string
         return ""
 
-    def get_reference(self, part):
-        reference = "X"
-        try:
-            reference = part.full_name.split('_')[0]
-            if len(part.full_name.split('_')) <= 1:
-                reference = "X"
-        except:
-            pass
-
-        return reference
-
     def get_value(self, part):
+        """Return the value associated with this part.
+        
+        If the part value has been specified via parameter, return that.
+        Otherwise, simply return the name of the part
+        """
+
+        # Fallback to the part name
         value = part.full_name
-        try:
-            value = f'{part.full_name.split("_")[1]}'
-        except:
-            pass
+
+        # Find the value parameter value associated with this part instance
+        template_id = self.plugin.get_setting('KICAD_VALUE_PARAMETER', None)
+
+        value = self.get_parameter_value(part, template_id, backup_value=value)
 
         return value
 
-    def get_symbolIdStr(self, part):
-        return self.get_symbol(part)
+    def get_custom_fields(self, part):
+        """Return a set of 'custom' fields for this part
+        
+        Here, we return all the part parameters which are not already used
+        """
+
+        excluded_templates = [
+            self.plugin.get_setting('KICAD_SYMBOL_PARAMETER', None),
+            self.plugin.get_setting('KICAD_FOOTPRINT_PARAMETER', None),
+            self.plugin.get_setting('KICAD_REFERENCE_PARAMETER', None),
+            self.plugin.get_setting('KICAD_VALUE_PARAMETER', None),
+        ]
+
+        excluded_field_names = [
+            'value',
+            'footprint',
+            'datasheet',
+            'reference',
+            'description',
+            'keywords',
+        ]
+
+        # Always include the InvenTree field, which has the ID of the part
+        fields = {
+            'InvenTree': {
+                'value': f'{part.id}',
+                'visible': 'False'
+            }
+        }
+
+        for parameter in part.parameters.all():
+            # Exclude any which have already been used for default KiCad fields
+            if str(parameter.template.pk) in excluded_templates:
+                continue
+                
+            # Skip any which conflict with KiCad field names
+            if parameter.template.name in excluded_field_names:
+                continue
+
+            fields[parameter.template.name] = {
+                "value": parameter.data,
+                "visible": 'False'
+            }
+
+        return fields
 
     def get_kicad_fields(self, part):
         """Return a set of fields to be used in the KiCad symbol library"""
@@ -165,11 +237,12 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 "visible": 'False'
             },
             'datasheet': {
-                "value": "www.kicad.org",
+                "value": self.get_datasheet(part),
                 "visible": 'False'
             },
             'reference': {
-                "value": "R",
+                "value": self.get_reference(part),
+                "visible": 'True',
             },
             'description': {
                 "value": part.description,
@@ -181,31 +254,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             },
         }
 
-        # Extra fields (to be implemented)
-        kicad_custom_fields = {
-            'custom1': {
-                "value": "MyText1",
-                "visible": 'False'
-            },
-            'custom2': {
-                "value": "MyText2",
-                "visible": 'False'
-            },
-            'custom3': {
-                "value": "MyText3",
-                "visible": 'False'
-            },
-            'InvenTree': {
-                "value": f'{part.id}',
-                "visible": 'False'
-            },
-            'Rating': {
-                "value": "",
-                "visible": 'False'
-            },
-        }
-
-        return kicad_default_fields | kicad_custom_fields
+        return kicad_default_fields | self.get_custom_fields(part)
 
 
 class KicadPreviewPartSerializer(serializers.ModelSerializer):

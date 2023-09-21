@@ -51,6 +51,13 @@ class PartsPreviewList(generics.ListAPIView):
 
     serializer_class = KicadPreviewPartSerializer
 
+    def get_serializer(self, *args, **kwargs):
+        """Add the parent plugin instance to the serializer contenxt"""
+
+        kwargs['plugin'] = self.kwargs['plugin']
+
+        return self.serializer_class(*args, **kwargs)
+
     def get_queryset(self):
         """Return a list of parts in the specified category
         
@@ -88,6 +95,18 @@ class PartDetail(generics.RetrieveAPIView):
 
     serializer_class = KicadDetailedPartSerializer
     queryset = Part.objects.all()
+
+    def get_queryset(self):
+        """Prefetch related fields to speed up query"""
+
+        queryset = super().get_queryset()
+
+        queryset = queryset.prefetch_related(
+            'parameters',
+            'attachments',
+        )
+
+        return queryset
 
     def get_serializer(self, *args, **kwargs):
         """Add the parent plugin instance to the serializer contenxt"""

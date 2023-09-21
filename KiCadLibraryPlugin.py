@@ -61,7 +61,12 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, InvenTreePlugin, SettingsMixin):
             'name': _('Reference Parameter'),
             'description': _('The part parameter to use for the reference name.'),
             'model': 'part.partparametertemplate',
-        }
+        },
+        'KICAD_VALUE_PARAMETER': {
+            'name': _('Value Parameter'),
+            'description': _('The part parameter to use for the value.'),
+            'model': 'part.partparametertemplate',
+        },
     }
 
     def setup_urls(self):
