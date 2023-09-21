@@ -4,8 +4,6 @@ from __future__ import unicode_literals
 from django.contrib import admin
 from .models import SelectedCategory
 
-from part.models import PartCategory
-
 
 class SelectedCategoryAdmin(admin.ModelAdmin):
     """Admin class for the SelectedCategory model"""
