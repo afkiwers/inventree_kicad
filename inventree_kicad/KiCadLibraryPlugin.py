@@ -90,6 +90,9 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
                 re_path('categories(.json)?/?$', viewsets.CategoryList.as_view(), {'plugin': self}, name='kicad-category-list'),
 
                 # Anything else goes to the index view
-                re_path('.*$', viewsets.Index.as_view(), name='kicad-index'),
-            ]))
+                re_path('^.*$', viewsets.Index.as_view(), name='kicad-index'),
+            ])),
+
+            # Anything else, redirect to our top-level v1 page
+            re_path('^.*$', viewsets.Index.as_view(), name='kicad-index'),
         ]
