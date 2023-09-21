@@ -10,27 +10,26 @@ import datetime
 import os
 
 from django.conf.urls import url
-from django.http import JsonResponse, HttpResponse
+from django.urls import include, re_path
+from django.utils.translation import gettext_lazy as _
 
-from django.urls import include, re_path, path
+from rest_framework import routers
 
 from plugin import InvenTreePlugin
 from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin
 
-from django.utils.translation import gettext_lazy as _
-
-from .viewsets import router_kicad, PartsPreViewList
 from .version import KICAD_PLUGIN_VERSION
-from . import views
-
 
 # ---------------------------- KiCad API Endpoint Plugin --------------------------------------------------
-class KiCadLibraryPlugin(UrlsMixin, AppMixin, InvenTreePlugin, SettingsMixin):
+class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
+    """Plugin for KiCad Library Endpoint.
+    
+    Provides a set of API endpoints which conform to the KiCad REST API specification.
+    """
+
     AUTHOR = "Andre Iwers"
 
-    DESCRIPTION = _(
-        "KiCad EDA conform API endpoint for KiCad's parts library tool. This plugin provides metadata only "
-        "and requires matching symbol and footprint libraries within the KiCad EDA.")
+    DESCRIPTION = _("Provides external library functionality for KiCad via the HTTP library interface")
 
     VERSION = KICAD_PLUGIN_VERSION
 
@@ -38,28 +37,61 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, InvenTreePlugin, SettingsMixin):
     SLUG = "kicad-library-plugin"
     NAME = "KiCadLibraryPlugin"
 
-    PUBLISH_DATE = datetime.date(2023, 6, 9)
+    PUBLISH_DATE = datetime.date(2023, 9, 21)
+
     WEBSITE = "https://www.aioz.com.au"
 
     MIN_VERSION = '0.11.0'
 
-    os.environ['KICAD_PLUGIN_GET_SUB_PARTS'] = 'True'
-    # os.environ['KICAD_PLUGIN_GET_SUB_PARTS'] = self.get_setting('KICAD_PLUGIN_GET_SUB_PARTS', cache=False)
-
     SETTINGS = {
-        'KICAD_PLUGIN_GET_SUB_PARTS': {
+        'KICAD_ENABLE_SUBCATEGORY': {
             'name': _('Enable Sub-Category Parts'),
             'description': _(
                 'If enabled, plugin will return all the part under this category even if they are in a sub-category.'),
             'validator': bool,
             'default': True,
         },
+        'KICAD_SYMBOL_PARAMETER': {
+            'name': _('Symbol Parameter'),
+            'description': _('The part parameter to use for the symbol name.'),
+            'model': 'part.partparametertemplate',
+        },
+        'KICAD_FOOTPRINT_PARAMETER': {
+            'name': _('Footprint Parameter'),
+            'description': _('The part parameter to use for the footprint name.'),
+            'model': 'part.partparametertemplate',
+        },
+        'KICAD_REFERENCE_PARAMETER': {
+            'name': _('Reference Parameter'),
+            'description': _('The part parameter to use for the reference name.'),
+            'model': 'part.partparametertemplate',
+        },
+        'KICAD_VALUE_PARAMETER': {
+            'name': _('Value Parameter'),
+            'description': _('The part parameter to use for the value.'),
+            'model': 'part.partparametertemplate',
+        },
     }
 
     def setup_urls(self):
         """Returns the URLs defined by this plugin."""
+
+        from . import viewsets
+
         return [
-            re_path(r'v1/settings.json', views.kicad_settings, name="kicad_Settings"),
-            re_path('^v1/parts/category/(?P<id>.+).json$', PartsPreViewList.as_view()),
-            url(r'^v1/', include(router_kicad.urls)),
+            re_path(r'v1/', include([
+                re_path(r'parts/', include([
+                    re_path('category/(?P<id>.+).json$', viewsets.PartsPreviewList.as_view(), {'plugin': self}, name='kicad-part-category-list'),
+                    re_path('(?P<pk>.+).json$', viewsets.PartDetail.as_view(), {'plugin': self}, name='kicad-part-detail'),
+
+                    # Anything else goes to the part list
+                    re_path('.*$', viewsets.PartsPreviewList.as_view(), {'plugin': self}, name='kicad-part-list'),
+                ])),
+
+                # List of available categories
+                re_path('categories(.json)?/?$', viewsets.CategoryList.as_view(), {'plugin': self}, name='kicad-category-list'),
+
+                # Anything else goes to the index view
+                re_path('.*$', viewsets.Index.as_view(), name='kicad-index'),
+            ]))
         ]

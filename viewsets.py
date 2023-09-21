@@ -1,84 +1,116 @@
 import os
 
-from rest_framework.pagination import PageNumberPagination
-from rest_framework import routers, viewsets, generics
+from rest_framework import generics, permissions, response, views
 
+from InvenTree.helpers import str2bool
 from part.models import PartCategory, Part
 
 
-def str2bool(v):
-    return v.lower() in ("True", "true", "1")
+class Index(views.APIView):
+    """Index view which provides a list of available endpoints"""
+
+    permission_classes = [
+        permissions.IsAuthenticated,
+    ]
+
+    def get(self, request, *args, **kwargs):
+        """Provide an index of the available endpoints"""
+
+        # Get the base URL for the request, and construct secondary urls based on this
+        # TODO: There is probably a better way of handling this!
+        base_url = request.build_absolute_uri('/plugin/kicad-library-plugin/v1/')
+
+        return response.Response(
+            data={
+                'categories': base_url + 'categories/',
+                'parts': base_url + 'parts/',
+            }
+        )
 
 
-# Paginator is not actually used by KiCad but helps when manually browsing
-# through the parts
-class DefaultPagination(PageNumberPagination):
-    page_size = 25
-    page_size_query_param = 'page_size'
-    max_page_size = 100
+class CategoryList(generics.ListAPIView):
+    """List of available KiCad categories"""
 
-
-class CategoryViewSet(viewsets.ModelViewSet):
     from .serializers import KicadCategorySerializer
 
     serializer_class = KicadCategorySerializer
-    queryset = PartCategory.objects.all()
 
     def get_queryset(self):
+        """Return only PartCategory objects which are mapped to a SelectedCategory"""
+
         from .models import SelectedCategory
 
-        # Use user selected categories if available, otherwise display all.
-        kicad_category_ids = SelectedCategory.objects.all().values_list('category_id', flat=True)
+        category_ids = SelectedCategory.objects.all().values_list('category_id', flat=True)
 
-        if len(kicad_category_ids):
-            queryset = PartCategory.objects.filter(pk__in=kicad_category_ids)
-        else:
-            queryset = PartCategory.objects.all()
+        return PartCategory.objects.filter(pk__in=category_ids)
 
-        return queryset
+class PartsPreviewList(generics.ListAPIView):
+    """Preview list for all parts in a given category"""
 
+    from .serializers import KicadPreviewPartSerializer
 
-class PartsPreViewList(generics.ListAPIView):
-    from .serializers import KicadPreViewPartSerializer
+    serializer_class = KicadPreviewPartSerializer
 
-    serializer_class = KicadPreViewPartSerializer
+    def get_serializer(self, *args, **kwargs):
+        """Add the parent plugin instance to the serializer contenxt"""
 
-    def get_queryset(self):
-        queryset = Part.objects.all()
-        category_id = self.kwargs['id']
+        kwargs['plugin'] = self.kwargs['plugin']
 
-        # general this will be a bulk transfer for the tree view. To speed things up only return bare minimum.
-        if category_id:
-            self.serializer_class = self.KicadPreViewPartSerializer
-            try:
-                category = PartCategory.objects.get(id=category_id)
-                queryset = category.get_parts(cascade=str2bool(os.getenv('KICAD_PLUGIN_GET_SUB_PARTS')))
-            except:
-                queryset = Part.objects.none()
-
-        return queryset
-
-
-class PartViewSet(viewsets.ModelViewSet):
-    from .serializers import KicadDetailedPartSerializer, KicadPreViewPartSerializer
-
-    # general serialiser in use
-    serializer_class = KicadDetailedPartSerializer
-    pagination_class = DefaultPagination
+        return self.serializer_class(*args, **kwargs)
 
     def get_queryset(self):
-        queryset = Part.objects.all()
-        category_id = self.request.GET.get('category')
+        """Return a list of parts in the specified category
+        
+        We check if the plugin setting KICAD_ENABLE_SUBCATEGORY is enabled,
+        to determine if sub-category parts should be returned also
+        """
 
-        # general this will be a bulk transfer for the tree view. To speed things up only return bare minimum.
-        if category_id:
-            self.serializer_class = self.KicadPreViewPartSerializer
+        category_id = self.kwargs.get('id', None)
+
+        # Get a reference to the plugin instance
+        plugin = self.kwargs['plugin']
+
+        cascade = str2bool(plugin.get_setting('KICAD_ENABLE_SUBCATEGORY', False))
+
+        # Get the part category
+        try:
             category = PartCategory.objects.get(id=category_id)
-            queryset = category.get_parts(cascade=str2bool(os.getenv('KICAD_PLUGIN_GET_SUB_PARTS')))
+        except PartCategory.DoesNotExist:
+            return Part.objects.all()
+        
+        if cascade:
+            return Part.objects.filter(category__in=category.get_descendants(include_self=True))
+        else:
+            return Part.objects.filter(category=category)
+
+
+class PartDetail(generics.RetrieveAPIView):
+    """Detailed information endpoint for a single part instance.
+    
+    Here, the lookup id (pk) is the part id.
+    The custom plugin serializer formats the data into a KiCad compatible format.
+    """
+
+    from .serializers import KicadDetailedPartSerializer
+
+    serializer_class = KicadDetailedPartSerializer
+    queryset = Part.objects.all()
+
+    def get_queryset(self):
+        """Prefetch related fields to speed up query"""
+
+        queryset = super().get_queryset()
+
+        queryset = queryset.prefetch_related(
+            'parameters',
+            'attachments',
+        )
 
         return queryset
 
+    def get_serializer(self, *args, **kwargs):
+        """Add the parent plugin instance to the serializer contenxt"""
 
-router_kicad = routers.DefaultRouter()
-router_kicad.register(r'categories', CategoryViewSet, basename='kicad-category')
-router_kicad.register(r'parts', PartViewSet, basename='kicad-parts')
+        kwargs['plugin'] = self.kwargs['plugin']
+
+        return self.serializer_class(*args, **kwargs)
