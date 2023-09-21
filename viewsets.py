@@ -65,7 +65,7 @@ class PartsPreviewList(generics.ListAPIView):
         to determine if sub-category parts should be returned also
         """
 
-        category_id = self.kwargs['id']
+        category_id = self.kwargs.get('id', None)
 
         # Get a reference to the plugin instance
         plugin = self.kwargs['plugin']
@@ -76,7 +76,7 @@ class PartsPreviewList(generics.ListAPIView):
         try:
             category = PartCategory.objects.get(id=category_id)
         except PartCategory.DoesNotExist:
-            return Part.objects.none()
+            return Part.objects.all()
         
         if cascade:
             return Part.objects.filter(category__in=category.get_descendants(include_self=True))

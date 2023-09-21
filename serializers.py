@@ -274,8 +274,17 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
             'name',
         ]
 
+    def __init__(self, *args, **kwargs):
+        """Custom initialization for this seriailzer.
+        
+        As we need to have access to the parent plugin instance,
+        we pass it in via the kwargs.
+        """
+
+        self.plugin = kwargs.pop('plugin')
+        super().__init__(*args, **kwargs)
+
     id = serializers.CharField(source='pk', read_only=True)
-    name = serializers.CharField(source='name', read_only=True)
 
 
 class KicadCategorySerializer(serializers.ModelSerializer):

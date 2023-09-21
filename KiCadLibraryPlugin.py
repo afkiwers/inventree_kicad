@@ -83,8 +83,11 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, InvenTreePlugin, SettingsMixin):
         return [
             re_path(r'v1/', include([
                 re_path(r'settings.json', views.kicad_settings, name='kicad-settings'),
-                re_path('^parts/category/(?P<id>.+).json$', viewsets.PartsPreviewList.as_view(), {'plugin': self}, name='kicad-part-preview-list'),
-                re_path('^parts/(?P<pk>.+).json$', viewsets.PartDetail.as_view(), {'plugin': self}, name='kicad-part-detail'),
+                re_path(r'^parts/', include([
+                    re_path('^category/(?P<id>.+).json$', viewsets.PartsPreviewList.as_view(), {'plugin': self}, name='kicad-part-preview-list'),
+                    re_path('^(?P<pk>.+).json$', viewsets.PartDetail.as_view(), {'plugin': self}, name='kicad-part-detail'),
+                    re_path('', viewsets.PartsPreviewList.as_view(), {'plugin': self}, name='kicad-part-preview-list'),
+                ])),
                 re_path('^categories/', viewsets.CategoryList.as_view(), {'plugin': self}, name='kicad-category-list'),
                 url('', include(router.urls))
             ]))
