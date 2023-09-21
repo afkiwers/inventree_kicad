@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework.reverse import reverse_lazy
 
-from part.models import Part, PartCategory, PartParameter, PartParameterTemplate
+from part.models import Part, PartCategory, PartParameter
 
 
 class KicadDetailedPartSerializer(serializers.ModelSerializer):
@@ -34,7 +34,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
     # Serializer field definitions
     id = serializers.CharField(source='pk', read_only=True)
-    symbolIdStr = serializers.SerializerMethodField('get_symbol')
+    symbolIdStr = serializers.SerializerMethodField('get_symbol')  # noqa: N815
     fields = serializers.SerializerMethodField('get_kicad_fields')
 
     def get_kicad_category(self, part):
@@ -79,7 +79,6 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             return parameter.data
         else:
             return backup_value
-
 
     def get_reference(self, part):
         """Return the reference associated with this part

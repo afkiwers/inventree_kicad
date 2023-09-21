@@ -1,5 +1,3 @@
-import os
-
 from rest_framework import generics, permissions, response, views
 
 from InvenTree.helpers import str2bool
@@ -43,6 +41,7 @@ class CategoryList(generics.ListAPIView):
         category_ids = SelectedCategory.objects.all().values_list('category_id', flat=True)
 
         return PartCategory.objects.filter(pk__in=category_ids)
+
 
 class PartsPreviewList(generics.ListAPIView):
     """Preview list for all parts in a given category"""
