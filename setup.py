@@ -15,7 +15,7 @@ setuptools.setup(
 
     author="Andre Iwers",
 
-    author_email="afkiwers@gmail.com",
+    author_email="iwers11@gmail.com",
 
     description="KiCad HTTP library plugin for InvenTree",
 
