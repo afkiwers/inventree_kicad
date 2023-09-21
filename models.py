@@ -32,3 +32,10 @@ class SelectedCategory(models.Model):
         verbose_name=_('Default Footprint'),
         help_text=_('Default footprint for this category, if not specified for an individual part'),
     )
+
+    default_reference = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name=_('Default Reference'),
+        help_text=_('Default reference for this category, if not specified for an individual part'),
+    )
