@@ -258,6 +258,11 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
 
 class KicadPreviewPartSerializer(serializers.ModelSerializer):
+    """Simplified serializer for previewing each part in a category.
+    
+    Simply returns the part ID and name.
+    """
+
     class Meta:
         """Metaclass defining serializer fields"""
         model = Part
@@ -269,18 +274,8 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
             'name',
         ]
 
-    id = serializers.SerializerMethodField('get_id')
-    name = serializers.SerializerMethodField('get_name')
-
-    def get_api_url(self):
-        """Return the API url associated with this serializer"""
-        return reverse_lazy('api-kicad-part-list')
-
-    def get_name(self, part):
-        return part.full_name
-
-    def get_id(self, part):
-        return f'{part.pk}'
+    id = serializers.CharField(source='pk', read_only=True)
+    name = serializers.CharField(source='name', read_only=True)
 
 
 class KicadCategorySerializer(serializers.ModelSerializer):
@@ -297,21 +292,3 @@ class KicadCategorySerializer(serializers.ModelSerializer):
         ]
 
     id = serializers.CharField(source='pk', read_only=True)
-
-
-class KicadPartParameterTemplateSerializer(serializers.ModelSerializer):
-    class Meta:
-        """Metaclass defining serializer fields"""
-        model = PartParameterTemplate
-        fields = [
-            'name',
-        ]
-
-
-class KicadFieldsSerializer(serializers.ModelSerializer):
-    class Meta:
-        """Metaclass defining serializer fields"""
-        model = PartParameterTemplate
-        fields = [
-            'name',
-        ]
