@@ -7,9 +7,7 @@ corresponding parts within the Kicad environment.
 
 """
 import datetime
-import os
 
-from django.conf.urls import url
 from django.urls import include, re_path
 from django.utils.translation import gettext_lazy as _
 
@@ -18,7 +16,7 @@ from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin
 
 from .version import KICAD_PLUGIN_VERSION
 
-# ---------------------------- KiCad API Endpoint Plugin --------------------------------------------------
+
 class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
     """Plugin for KiCad Library Endpoint.
     
