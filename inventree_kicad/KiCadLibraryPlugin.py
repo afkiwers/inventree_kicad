@@ -13,8 +13,6 @@ from django.conf.urls import url
 from django.urls import include, re_path
 from django.utils.translation import gettext_lazy as _
 
-from rest_framework import routers
-
 from plugin import InvenTreePlugin
 from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin
 
