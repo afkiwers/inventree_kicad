@@ -1,0 +1,28 @@
+name: Style Checks
+
+on: ["push", "pull_request"]
+
+jobs:
+  style:
+    runs-on: ubuntu-latest
+
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: [3.9]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Deps
+        run: |
+          pip install invoke
+          pip install flake8
+          pip install pep8-naming
+      - name: Style Checks
+        run: |
+          flake8 .
