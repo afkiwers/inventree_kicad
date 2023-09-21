@@ -11,6 +11,8 @@ class SelectedCategory(models.Model):
 
     class Meta:
         app_label = 'inventree_kicad'
+        verbose_name = 'KiCad Category'
+        verbose_name_plural = 'KiCad Categories'
 
     category = models.OneToOneField(
         PartCategory,
