@@ -266,11 +266,10 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
         """Metaclass defining serializer fields"""
         model = Part
 
-        # fields = [f.name for f in Part._meta.fields]
-
         fields = [
             'id',
             'name',
+            'description',
         ]
 
     def __init__(self, *args, **kwargs):
