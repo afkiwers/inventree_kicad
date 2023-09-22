@@ -194,7 +194,9 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             self.plugin.get_setting('KICAD_SYMBOL_PARAMETER', None),
             self.plugin.get_setting('KICAD_FOOTPRINT_PARAMETER', None),
             self.plugin.get_setting('KICAD_REFERENCE_PARAMETER', None),
-            self.plugin.get_setting('KICAD_VALUE_PARAMETER', None),
+            self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOM_PARAMETER', None),
+            self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOARD_PARAMETER', None),
+            self.plugin.get_setting('KICAD_EXCLUDE_FROM_SIM_PARAMETER', None),
         ]
 
         excluded_field_names = [
@@ -270,19 +272,14 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         """
 
         # Fallback to not exclude
-        value = False
+        value = 'False'
 
         # Find the value parameter value associated with this part instance
         template_id = self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOM_PARAMETER', None)
 
         value = self.get_parameter_value(part, template_id, backup_value=value)
 
-        print(f'KICAD_EXCLUDE_FROM_BOM_PARAMETER {value}')
-
-        if value:
-            return 'True' if value else 'False'
-        else:
-            return False
+        return value
         
     def get_exclude_from_board(self, part):
         """Return the whether or not the part should be excluded from the board.
@@ -292,17 +289,14 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         """
 
         # Fallback to not exclude
-        value = False
+        value = 'False'
 
         # Find the value parameter value associated with this part instance
         template_id = self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOARD_PARAMETER', None)
 
         value = self.get_parameter_value(part, template_id, backup_value=value)
 
-        if value:
-            return 'True' if value else 'False'
-        else:
-            return False
+        return value
 
     def get_exclude_from_sim(self, part):
         """Return the whether or not the part should be excluded from the sim.
@@ -312,17 +306,14 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         """
 
         # Fallback to not exclude
-        value = False
+        value = 'False'
 
         # Find the value parameter value associated with this part instance
         template_id = self.plugin.get_setting('KICAD_EXCLUDE_FROM_SIM_PARAMETER', None)
 
         value = self.get_parameter_value(part, template_id, backup_value=value)
 
-        if value:
-            return 'True' if value else 'False'
-        else:
-            return False
+        return value
 
 
 class KicadPreviewPartSerializer(serializers.ModelSerializer):
