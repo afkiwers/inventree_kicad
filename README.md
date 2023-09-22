@@ -20,21 +20,26 @@ The plugin can be found here: [inventree-kicad-plugin](https://pypi.org/project/
 
 ## Configure Plugin Settings
 After installing the plugin, head over to the Plugin Settings and activate it. Look for **KiCadLibraryPlugin** in the list of available plugins. Once activated, you'll be able to open the plugin and proceed with the setup process.
+
 ![image](./images/admin_add_change_categories.png)
 
 ## Adding Categories to KiCad
 Navigate to the admin backend, and scroll down until you find the **INVENTREE_KICAD** section. Within this section, click on **KiCad Categories**.
+
 ![image](./images/admin_model.png)
 
- Once opened the "KiCad Categories" model, you'll have the option to add new categories which, once added, will be visible in KiCad's Symbol Chooser dialog.
- ![image](./images/admin_add_change_categories.png)
+Once opened the "KiCad Categories" model, you'll have the option to add new categories which, once added, will be visible in KiCad's Symbol Chooser dialog.
+
+![image](./images/admin_add_change_categories.png)
 
 #### Default Settings for Categories
 The plugin allows you to set default values when the child part lacks specific details regarding the KiCad symbol, footprint, or reference. This feature is particularly useful when dealing with components such as resistors or capacitors, as they often share the same symbols, reducing the need for repetitive data entry.
+
 ![image](./images/admin_add_category.png)
 
 ## Creating User Access Tokens
 Head back to the admin backend and click on Tokens. Click on "ADD Token" to generate a token dedicated to a particular user. It is important to emphasize that it is highly advisable to create individual tokens for each user, rather than employing a single token for everyone.
+
 ![image](./images/admin_tokens.png)
 
 ## KiCad Configuration files
