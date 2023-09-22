@@ -67,6 +67,21 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             'description': _('The part parameter to use for the value.'),
             'model': 'part.partparametertemplate',
         },
+        'KICAD_EXCLUDE_FROM_BOM_PARAMETER': {
+            'name': _('BOM Exclusion Parameter'),
+            'description': _('The part parameter to use for to exclude it from the BOM.'),
+            'model': 'part.partparametertemplate',
+        },
+        'KICAD_EXCLUDE_FROM_BOARD_PARAMETER': {
+            'name': _('BOM Exclusion Parameter'),
+            'description': _('The part parameter to use for to exclude it from the board.'),
+            'model': 'part.partparametertemplate',
+        },
+        'KICAD_EXCLUDE_FROM_SIM_PARAMETER': {
+            'name': _('BOM Exclusion Parameter'),
+            'description': _('The part parameter to use for to exclude it from the simulation.'),
+            'model': 'part.partparametertemplate',
+        },
     }
 
     def setup_urls(self):
