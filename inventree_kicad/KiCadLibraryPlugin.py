@@ -35,7 +35,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
 
     PUBLISH_DATE = datetime.date(2023, 9, 21)
 
-    WEBSITE = "https://www.aioz.com.au"
+    WEBSITE = "https://github.com/afkiwers"
 
     MIN_VERSION = '0.11.0'
 
