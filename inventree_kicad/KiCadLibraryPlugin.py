@@ -73,12 +73,12 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             'model': 'part.partparametertemplate',
         },
         'KICAD_EXCLUDE_FROM_BOARD_PARAMETER': {
-            'name': _('BOM Exclusion Parameter'),
+            'name': _('Board Exclusion Parameter'),
             'description': _('The part parameter to use for to exclude it from the board.'),
             'model': 'part.partparametertemplate',
         },
         'KICAD_EXCLUDE_FROM_SIM_PARAMETER': {
-            'name': _('BOM Exclusion Parameter'),
+            'name': _('Simulation Exclusion Parameter'),
             'description': _('The part parameter to use for to exclude it from the simulation.'),
             'model': 'part.partparametertemplate',
         },
