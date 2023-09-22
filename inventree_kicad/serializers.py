@@ -274,6 +274,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         return True if value else False
 
+
 class KicadPreviewPartSerializer(serializers.ModelSerializer):
     """Simplified serializer for previewing each part in a category.
     

@@ -67,7 +67,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             'description': _('The part parameter to use for the value.'),
             'model': 'part.partparametertemplate',
         },
-         'KICAD_EXCLUDE_FROM_BOM_PARAMETER': {
+        'KICAD_EXCLUDE_FROM_BOM_PARAMETER': {
             'name': _('BOM Exclusion Parameter'),
             'description': _('The part parameter to use for to exclude it from the BOM.'),
             'model': 'part.partparametertemplate',
