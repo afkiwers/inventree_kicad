@@ -296,7 +296,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         return True if value else False
     
-    def get_exclude_from_simm(self, part):
+    def get_exclude_from_sim(self, part):
         """Return the whether or not the part should be excluded from the sim.
         
         If the part exclusion has been specified via parameter, return that.
