@@ -277,8 +277,13 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         value = self.get_parameter_value(part, template_id, backup_value=value)
 
-        return 'True' if value == True else 'False'
+        print(f'KICAD_EXCLUDE_FROM_BOM_PARAMETER {value}')
 
+        if value:
+            return 'True' if value else 'False'
+        else:
+            return False
+        
     def get_exclude_from_board(self, part):
         """Return the whether or not the part should be excluded from the board.
         
@@ -294,8 +299,11 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         value = self.get_parameter_value(part, template_id, backup_value=value)
 
-        return 'True' if value == True else 'False'
-    
+        if value:
+            return 'True' if value else 'False'
+        else:
+            return False
+
     def get_exclude_from_sim(self, part):
         """Return the whether or not the part should be excluded from the sim.
         
@@ -311,7 +319,10 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         value = self.get_parameter_value(part, template_id, backup_value=value)
 
-        return 'True' if value == True else 'False'
+        if value:
+            return 'True' if value else 'False'
+        else:
+            return False
 
 
 class KicadPreviewPartSerializer(serializers.ModelSerializer):
