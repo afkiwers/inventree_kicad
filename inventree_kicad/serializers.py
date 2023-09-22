@@ -29,12 +29,14 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             'id',
             'name',
             'symbolIdStr',
+            'exclude_from_bom',
             'fields',
         ]
 
     # Serializer field definitions
     id = serializers.CharField(source='pk', read_only=True)
     symbolIdStr = serializers.SerializerMethodField('get_symbol')  # noqa: N815
+    exclude_from_bom = serializers.SerializerMethodField('get_exclude_from_bom')
     fields = serializers.SerializerMethodField('get_kicad_fields')
 
     def get_kicad_category(self, part):
@@ -255,6 +257,22 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         return kicad_default_fields | self.get_custom_fields(part)
 
+    def get_exclude_from_bom(self, part):
+        """Return the whether or not the part should be excluded from the bom.
+        
+        If the part exclusion has been specified via parameter, return that.
+        Otherwise, simply return false
+        """
+
+        # Fallback to the part name
+        value = False
+
+        # Find the value parameter value associated with this part instance
+        template_id = self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOM_PARAMETER', None)
+
+        value = self.get_parameter_value(part, template_id, backup_value=value)
+
+        return True if value else False
 
 class KicadPreviewPartSerializer(serializers.ModelSerializer):
     """Simplified serializer for previewing each part in a category.
