@@ -13,7 +13,7 @@ Navigate to the **Plugin Settings** and click on the Install Plugin button. This
 - Package Name: inventree-kicad-plugin
 - Source URL: git+https://github.com/afkiwers/inventree-kicad-plugin
 
-![image](./images/admin_add_change_categories.png)
+![image](./images/install_plugin_via_github_url.png)
 
 ### Through PiP
 The plugin can be found here: [inventree-kicad-plugin](https://pypi.org/project/inventree-kicad-plugin/).
