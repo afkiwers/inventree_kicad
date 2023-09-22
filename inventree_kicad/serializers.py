@@ -30,6 +30,8 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             'name',
             'symbolIdStr',
             'exclude_from_bom',
+            'exclude_from_board',
+            'exclude_from_sim',
             'fields',
         ]
 
@@ -37,6 +39,9 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
     id = serializers.CharField(source='pk', read_only=True)
     symbolIdStr = serializers.SerializerMethodField('get_symbol')  # noqa: N815
     exclude_from_bom = serializers.SerializerMethodField('get_exclude_from_bom')
+    exclude_from_board = serializers.SerializerMethodField('get_exclude_from_board')
+    exclude_from_sim = serializers.SerializerMethodField('get_exclude_from_sim')
+
     fields = serializers.SerializerMethodField('get_kicad_fields')
 
     def get_kicad_category(self, part):
@@ -264,11 +269,45 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         Otherwise, simply return false
         """
 
-        # Fallback to the part name
+        # Fallback to not exclude
         value = False
 
         # Find the value parameter value associated with this part instance
         template_id = self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOM_PARAMETER', None)
+
+        value = self.get_parameter_value(part, template_id, backup_value=value)
+
+        return True if value else False
+
+    def get_exclude_from_board(self, part):
+        """Return the whether or not the part should be excluded from the board.
+        
+        If the part exclusion has been specified via parameter, return that.
+        Otherwise, simply return false
+        """
+
+        # Fallback to not exclude
+        value = False
+
+        # Find the value parameter value associated with this part instance
+        template_id = self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOARD_PARAMETER', None)
+
+        value = self.get_parameter_value(part, template_id, backup_value=value)
+
+        return True if value else False
+    
+    def get_exclude_from_simm(self, part):
+        """Return the whether or not the part should be excluded from the sim.
+        
+        If the part exclusion has been specified via parameter, return that.
+        Otherwise, simply return false
+        """
+
+        # Fallback to not exclude
+        value = False
+
+        # Find the value parameter value associated with this part instance
+        template_id = self.plugin.get_setting('KICAD_EXCLUDE_FROM_SIM_PARAMETER', None)
 
         value = self.get_parameter_value(part, template_id, backup_value=value)
 
