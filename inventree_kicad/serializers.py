@@ -265,7 +265,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         return kicad_default_fields | self.get_custom_fields(part)
 
     def get_exclude_from_bom(self, part):
-        """Return the whether or not the part should be excluded from the bom.
+        """Return whether or not the part should be excluded from the bom.
         
         If the part exclusion has been specified via parameter, return that.
         Otherwise, simply return false
@@ -282,7 +282,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         return value
         
     def get_exclude_from_board(self, part):
-        """Return the whether or not the part should be excluded from the board.
+        """Return whether or not the part should be excluded from the board.
         
         If the part exclusion has been specified via parameter, return that.
         Otherwise, simply return false
@@ -299,7 +299,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         return value
 
     def get_exclude_from_sim(self, part):
-        """Return the whether or not the part should be excluded from the sim.
+        """Return whether or not the part should be excluded from the sim.
         
         If the part exclusion has been specified via parameter, return that.
         Otherwise, simply return false
@@ -354,8 +354,17 @@ class KicadCategorySerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
-            'description',
-            'pathstring',
+            'description'
         ]
 
     id = serializers.CharField(source='pk', read_only=True)
+    name = serializers.SerializerMethodField('get_name')
+
+    def get_name(self, category):
+        """Return the whether or not the part should be excluded from the sim.
+
+        If the part exclusion has been specified via parameter, return that.
+        Otherwise, simply return false
+        """
+
+        return category.pathstring
