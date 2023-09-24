@@ -1,3 +1,5 @@
+from django.utils.translation import gettext_lazy as _
+
 from rest_framework import serializers
 from rest_framework.reverse import reverse_lazy
 
@@ -168,7 +170,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 # This version of InvenTree does not seem to support fully_qualified_urls
                 return datasheet.url()
             
-            return _('Unable to create a URL for the datasheet' )
+            return _("Unable to create a URL for the datasheet")
                 
         # Default, return empty string
         return ""
