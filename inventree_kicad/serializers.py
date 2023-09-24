@@ -168,9 +168,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 return datasheet.fully_qualified_url()
             except AttributeError:
                 # This version of InvenTree does not seem to support fully_qualified_urls
-                return datasheet.url()
-            
-            return _("Unable to create a URL for the datasheet")
+                return _("Unable to create a URL for the datasheet")
                 
         # Default, return empty string
         return ""
