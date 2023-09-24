@@ -1,1 +1,1 @@
-"""Plugin to supply Kicad with metadata."""
+"""Plugin to supply KiCad with metadata."""
