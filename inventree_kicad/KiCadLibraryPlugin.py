@@ -74,7 +74,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
         },
         'KICAD_EXCLUDE_FROM_BOARD_PARAMETER': {
             'name': _('Board Exclusion Parameter'),
-            'description': _('The part parameter to use for to exclude it from the board.'),
+            'description': _('The part parameter to use for to exclude it from the netlist when passing from schematic to board.'),
             'model': 'part.partparametertemplate',
         },
         'KICAD_EXCLUDE_FROM_SIM_PARAMETER': {

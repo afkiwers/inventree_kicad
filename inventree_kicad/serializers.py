@@ -1,3 +1,5 @@
+from django.utils.translation import gettext_lazy as _
+
 from rest_framework import serializers
 from rest_framework.reverse import reverse_lazy
 
@@ -162,8 +164,14 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 break
 
         if datasheet:
-            return datasheet.fully_qualified_url()
-
+            try:
+                return datasheet.fully_qualified_url()
+            except AttributeError:
+                # This version of InvenTree does not seem to support fully_qualified_urls
+                return datasheet.url()
+            
+            return _("Unable to create a URL for the datasheet")
+                
         # Default, return empty string
         return ""
 
@@ -282,7 +290,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         return value
         
     def get_exclude_from_board(self, part):
-        """Return whether or not the part should be excluded from the board.
+        """Return whether or not the part should be excluded from the netlist when passing from schematic to board.
         
         If the part exclusion has been specified via parameter, return that.
         Otherwise, simply return false
