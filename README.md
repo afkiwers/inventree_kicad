@@ -25,6 +25,7 @@ After installing the plugin, head over to the Plugin Settings and activate it. L
 
 ## Adding Categories to KiCad
 Navigate to the admin backend, and scroll down until you find the **INVENTREE_KICAD** section. Within this section, click on **KiCad Categories**.
+If the section is not visible, ensure you've enabled the "Enable URL integration" and "Enable app integration" options in the Plugin Settings and run a database migration.
 
 ![image](https://github.com/afkiwers/inventree_kicad/raw/main/images/admin_model.png)
 
@@ -44,7 +45,9 @@ Head back to the admin backend and click on Tokens. Click on "ADD Token" to gene
 
 ## KiCad Configuration files
 Below is an example config which should help you get started reasonably quickly. The only thing needed here is to replace **http://127.0.0.1:8000** with your server's InvenTree URL, and replace usertokendatastring with a valid token.
-```
+Save it as a file with `.kicad_httplib` extension, as specified in the [preliminary KiCad docs](https://docs.kicad.org/master/en/eeschema/eeschema_advanced.html#http-libraries). To use it, add it as a symbol library inside KiCad.
+
+```json
 {
     "meta": {
         "version": 1.0
