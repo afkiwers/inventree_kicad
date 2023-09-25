@@ -227,8 +227,8 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             if str(parameter.template.pk) in excluded_templates:
                 continue
                 
-            # Skip any which conflict with KiCad field names
-            if parameter.template.name in excluded_field_names:
+            # Skip any which conflict with KiCad field names (case-insensitive).
+            if parameter.template.name.lower() in excluded_field_names:
                 continue
 
             fields[parameter.template.name] = {
