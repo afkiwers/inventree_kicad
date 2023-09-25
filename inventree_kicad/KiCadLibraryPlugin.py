@@ -43,7 +43,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
         'KICAD_ENABLE_SUBCATEGORY': {
             'name': _('Enable Sub-Category Parts'),
             'description': _(
-                'If enabled, plugin will return all the part under this category even if they are in a sub-category.'),
+                'When activated, the plugin will provide all components associated with this category, including those located within sub-categories'),
             'validator': bool,
             'default': True,
         },
