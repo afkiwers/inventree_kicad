@@ -15,7 +15,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         """Custom initialization for this seriailzer.
-        
+
         As we need to have access to the parent plugin instance,
         we pass it in via the kwargs.
         """
@@ -48,7 +48,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
     def get_kicad_category(self, part):
         """For the provided part instance, find the associated SelectedCategory instance.
-        
+
         If there are multiple possible associations, return the "deepest" one.
         """
 
@@ -65,7 +65,8 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         # Get the category tree for the selected part
         categories = part.category.get_ancestors(include_self=True)
 
-        self.kicad_category = SelectedCategory.objects.filter(category__in=categories).order_by('-category__level').first()
+        self.kicad_category = SelectedCategory.objects.filter(category__in=categories).order_by(
+            '-category__level').first()
 
         return self.kicad_category
 
@@ -91,7 +92,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
     def get_reference(self, part):
         """Return the reference associated with this part
-        
+
         - First, check if the part has a reference assigned (via parameter)
         - Otherwise, fallback to the default reference for the KiCad Category
         """
@@ -102,7 +103,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         # Fallback to the "default" reference for the associated SelectedCategory instance
         if kicad_category := self.get_kicad_category(part):
             reference = kicad_category.default_reference
-        
+
         # Find the reference parameter value associated with this part instance
         template_id = self.plugin.get_setting('KICAD_REFERENCE_PARAMETER', None)
 
@@ -112,7 +113,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
     def get_symbol(self, part):
         """Return the symbol associated with this part.
-        
+
         - First, check if the part has a symbol assigned (via parameter)
         - Otherwise, fallback to the default symbol for the KiCad Category
         """
@@ -133,7 +134,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
     def get_footprint(self, part):
         """Return the footprint associated with this part.
-        
+
         - First, check if the part has a footprint assigned (via parameter)
         - Otherwise, fallback to the default footprint for the KiCad Category
         """
@@ -142,7 +143,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         if kicad_category := self.get_kicad_category(part):
             footprint = kicad_category.default_footprint
-        
+
         template_id = self.plugin.get_setting('KICAD_FOOTPRINT_PARAMETER', None)
 
         footprint = self.get_parameter_value(part, template_id, backup_value=footprint)
@@ -151,7 +152,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
     def get_datasheet(self, part):
         """Return the datasheet associated with this part.
-        
+
         Here, we look at the attachments associated with the part,
         and return the first one which has a comment matching "datasheet"
         """
@@ -169,13 +170,13 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             except AttributeError:
                 # This version of InvenTree does not seem to support fully_qualified_urls
                 return _("Unable to create a URL for the datasheet")
-                
+
         # Default, return empty string
         return ""
 
     def get_value(self, part):
         """Return the value associated with this part.
-        
+
         If the part value has been specified via parameter, return that.
         Otherwise, simply return the name of the part
         """
@@ -192,7 +193,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
     def get_custom_fields(self, part, excluded_field_names):
         """Return a set of 'custom' fields for this part
-        
+
         Here, we return all the part parameters which are not already used
         """
 
@@ -206,10 +207,21 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             self.plugin.get_setting('KICAD_VALUE_PARAMETER ', None),
         ]
 
+        # Build out an absolute URL for the part instance
+        if 'request' in self.context:
+            url = self.request['context'].build_absolute_url(f'/part/{part.id}/')
+        else:
+            from InvenTree.helpers_model import construct_absolute_url
+            url = construct_absolute_url(f'/part/{part.id}/')
+
         # Always include the InvenTree field, which has the ID of the part
         fields = {
             'InvenTree': {
                 'value': f'{part.id}',
+                'visible': 'False'
+            },
+            'Part URL': {
+                'value': url,
                 'visible': 'False'
             }
         }
@@ -218,7 +230,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             # Exclude any which have already been used for default KiCad fields
             if str(parameter.template.pk) in excluded_templates:
                 continue
-                
+
             # Skip any which conflict with KiCad field names
             if parameter.template.name.lower() in excluded_field_names:
                 continue
@@ -264,7 +276,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
     def get_exclude_from_bom(self, part):
         """Return whether or not the part should be excluded from the bom.
-        
+
         If the part exclusion has been specified via parameter, return that.
         Otherwise, simply return false
         """
@@ -278,10 +290,10 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         value = self.get_parameter_value(part, template_id, backup_value=value)
 
         return value
-        
+
     def get_exclude_from_board(self, part):
         """Return whether or not the part should be excluded from the netlist when passing from schematic to board.
-        
+
         If the part exclusion has been specified via parameter, return that.
         Otherwise, simply return false
         """
@@ -298,7 +310,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
     def get_exclude_from_sim(self, part):
         """Return whether or not the part should be excluded from the sim.
-        
+
         If the part exclusion has been specified via parameter, return that.
         Otherwise, simply return false
         """
@@ -316,7 +328,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
 class KicadPreviewPartSerializer(serializers.ModelSerializer):
     """Simplified serializer for previewing each part in a category.
-    
+
     Simply returns the part ID and name.
     """
 
@@ -332,7 +344,7 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         """Custom initialization for this seriailzer.
-        
+
         As we need to have access to the parent plugin instance,
         we pass it in via the kwargs.
         """
