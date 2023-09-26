@@ -18,6 +18,8 @@ Navigate to the **Plugin Settings** and click on the Install Plugin button. This
 ### Through PiP
 The plugin can be found here: [inventree-kicad-plugin](https://pypi.org/project/inventree-kicad-plugin/).
 
+**IMPORTANT**: Remember to restart your server and run the migrate command to implement the model changes required for this plugin. Failure to do so may result in the plugin encountering issues and not functioning correctly.
+
 ## Configure Plugin Settings
 After installing the plugin, head over to the Plugin Settings and activate it. Look for **KiCadLibraryPlugin** in the list of available plugins. Once activated, you'll be able to open the plugin and proceed with the setup process.
 
