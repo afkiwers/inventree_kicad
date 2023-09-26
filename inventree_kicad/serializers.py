@@ -190,7 +190,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         return value
 
-    def get_custom_fields(self, part):
+    def get_custom_fields(self, part, excluded_field_names):
         """Return a set of 'custom' fields for this part
         
         Here, we return all the part parameters which are not already used
@@ -203,16 +203,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOM_PARAMETER', None),
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOARD_PARAMETER', None),
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_SIM_PARAMETER', None),
-            self.plugin.get_setting('KICAD_VALUE_PARAMETER', None),
-        ]
-
-        excluded_field_names = [
-            'value',
-            'footprint',
-            'datasheet',
-            'reference',
-            'description',
-            'keywords',
+            self.plugin.get_setting('KICAD_VALUE_PARAMETER ', None),
         ]
 
         # Always include the InvenTree field, which has the ID of the part
@@ -228,7 +219,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             if str(parameter.template.pk) in excluded_templates:
                 continue
                 
-            # Skip any which conflict with KiCad field names (case-insensitive).
+            # Skip any which conflict with KiCad field names
             if parameter.template.name.lower() in excluded_field_names:
                 continue
 
@@ -269,7 +260,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             },
         }
 
-        return kicad_default_fields | self.get_custom_fields(part)
+        return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
 
     def get_exclude_from_bom(self, part):
         """Return whether or not the part should be excluded from the bom.
