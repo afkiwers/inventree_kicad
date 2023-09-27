@@ -189,6 +189,15 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         value = self.get_parameter_value(part, template_id, backup_value=value)
 
+        # it looks like there's not value parameter specified
+        if value == part.full_name:
+            # Fallback to the "default" value paramter for the associated SelectedCategory instance
+            if kicad_category := self.get_kicad_category(part):
+                value_parameter = kicad_category.default_value_parameter_template
+
+                if value_parameter:
+                    value = self.get_parameter_value(part, value_parameter.id, backup_value=value)
+
         return value
 
     def get_custom_fields(self, part, excluded_field_names):
@@ -206,6 +215,11 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_SIM_PARAMETER', None),
             self.plugin.get_setting('KICAD_VALUE_PARAMETER ', None),
         ]
+
+        # exclude default value parameter template. This will be used for the actual value
+        # so we don't want it to appear as an additional field.
+        if kicad_category := self.get_kicad_category(part):
+            excluded_templates.append(str(kicad_category.default_value_parameter_template.id))
 
         # Build out an absolute URL for the part instance
         if 'request' in self.context:
