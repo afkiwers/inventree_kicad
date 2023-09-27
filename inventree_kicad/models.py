@@ -3,7 +3,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from part.models import PartCategory
+from part.models import PartCategory, PartParameterTemplate
 
 
 class SelectedCategory(models.Model):
@@ -41,3 +41,16 @@ class SelectedCategory(models.Model):
         verbose_name=_('Default Reference'),
         help_text=_('Default reference for this category, if not specified for an individual part'),
     )
+
+    default_value_parameter_template = models.ForeignKey(
+        PartParameterTemplate,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        verbose_name=_('Default Value Parameter Template'),
+        help_text=_('Default value parameter template for this category, if not specified for an individual part'),
+    )
+
+    def __str__(self):
+        """Default name string which is returned when object is called"""
+        return f'{self.category.pathstring}'
