@@ -9,7 +9,6 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('part', '0113_auto_20230531_1205'),
     ]
 
     operations = [
