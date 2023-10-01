@@ -7,7 +7,6 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('part', '0114_alter_part_minimum_stock'),
         ('inventree_kicad', '0004_alter_selectedcategory_options'),
     ]
 
