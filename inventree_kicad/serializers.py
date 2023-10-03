@@ -14,7 +14,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         return reverse_lazy('api-kicad-part-list')
 
     def __init__(self, *args, **kwargs):
-        """Custom initialization for this seriailzer.
+        """Custom initialization for this serializer.
 
         As we need to have access to the parent plugin instance,
         we pass it in via the kwargs.
@@ -191,7 +191,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         # it looks like there's not value parameter specified
         if value == part.full_name:
-            # Fallback to the "default" value paramter for the associated SelectedCategory instance
+            # Fallback to the "default" value parameter for the associated SelectedCategory instance
             if kicad_category := self.get_kicad_category(part):
                 value_parameter = kicad_category.default_value_parameter_template
 
@@ -277,7 +277,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 "visible": 'True',
             },
             'description': {
-                "value": str(part.description) if part.desription else '',
+                "value": str(part.description) if part.description else '',
                 "visible": 'False'
             },
             'keywords': {
@@ -357,7 +357,7 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
         ]
 
     def __init__(self, *args, **kwargs):
-        """Custom initialization for this seriailzer.
+        """Custom initialization for this serializer.
 
         As we need to have access to the parent plugin instance,
         we pass it in via the kwargs.
