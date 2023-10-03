@@ -109,7 +109,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         reference = self.get_parameter_value(part, template_id, backup_value=reference)
 
-        return reference
+        return str(reference)
 
     def get_symbol(self, part):
         """Return the symbol associated with this part.
@@ -130,7 +130,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         symbol = self.get_parameter_value(part, template_id, backup_value=symbol)
 
-        return symbol
+        return str(symbol)
 
     def get_footprint(self, part):
         """Return the footprint associated with this part.
@@ -148,7 +148,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         footprint = self.get_parameter_value(part, template_id, backup_value=footprint)
 
-        return footprint
+        return str(footprint)
 
     def get_datasheet(self, part):
         """Return the datasheet associated with this part.
@@ -198,7 +198,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 if value_parameter:
                     value = self.get_parameter_value(part, value_parameter.id, backup_value=value)
 
-        return value
+        return str(value)
 
     def get_custom_fields(self, part, excluded_field_names):
         """Return a set of 'custom' fields for this part
@@ -277,11 +277,11 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 "visible": 'True',
             },
             'description': {
-                "value": part.description,
+                "value": str(part.description) if part.desription else '',
                 "visible": 'False'
             },
             'keywords': {
-                "value": part.keywords,
+                "value": str(part.keywords) if part.keywords else '',
                 "visible": 'False'
             },
         }
