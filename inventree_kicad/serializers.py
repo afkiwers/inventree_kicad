@@ -219,7 +219,8 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         # exclude default value parameter template. This will be used for the actual value
         # so we don't want it to appear as an additional field.
         if kicad_category := self.get_kicad_category(part):
-            excluded_templates.append(str(kicad_category.default_value_parameter_template.id))
+            if kicad_category.default_value_parameter_template:
+                excluded_templates.append(str(kicad_category.default_value_parameter_template.id))
 
         # Build out an absolute URL for the part instance
         if 'request' in self.context:
