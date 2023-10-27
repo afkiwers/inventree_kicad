@@ -82,6 +82,13 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             'description': _('The part parameter to use for to exclude it from the simulation.'),
             'model': 'part.partparametertemplate',
         },
+        'KICAD_INCLUDE_IPN': {
+            'name': _('Include IPN in part fields'),
+            'description': _(
+                'When activated, the IPN is included in the KiCad fields for a part'),
+            'validator': bool,
+            'default': False,
+        },
     }
 
     def setup_urls(self):
