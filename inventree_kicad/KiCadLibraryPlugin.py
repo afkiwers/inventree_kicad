@@ -47,6 +47,13 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             'validator': bool,
             'default': True,
         },
+        'KICAD_INCLUDE_IPN': {
+            'name': _('Include IPN in part fields'),
+            'description': _(
+                'When activated, the IPN is included in the KiCad fields for a part'),
+            'validator': bool,
+            'default': False,
+        },
         'KICAD_SYMBOL_PARAMETER': {
             'name': _('Symbol Parameter'),
             'description': _('The part parameter to use for the symbol name.'),
@@ -81,13 +88,6 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             'name': _('Simulation Exclusion Parameter'),
             'description': _('The part parameter to use for to exclude it from the simulation.'),
             'model': 'part.partparametertemplate',
-        },
-        'KICAD_INCLUDE_IPN': {
-            'name': _('Include IPN in part fields'),
-            'description': _(
-                'When activated, the IPN is included in the KiCad fields for a part'),
-            'validator': bool,
-            'default': False,
         },
     }
 
