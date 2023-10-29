@@ -47,7 +47,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             'validator': bool,
             'default': True,
         },
-         'KICAD_INCLUDE_IPN': {
+        'KICAD_INCLUDE_IPN': {
             'name': _('Include IPN in part fields'),
             'description': _(
                 'When activated, the IPN is included in the KiCad fields for a part'),
