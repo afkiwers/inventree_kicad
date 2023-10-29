@@ -3,6 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.reverse import reverse_lazy
 
+from InvenTree.helpers import str2bool
 from part.models import Part, PartCategory, PartParameter
 
 
@@ -240,6 +241,12 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 'visible': 'False'
             }
         }
+
+        if str2bool(self.plugin.get_setting('KICAD_INCLUDE_IPN', False)):
+            fields['IPN'] = {
+                'value': f'{part.IPN}',
+                'visible': 'False'
+            }
 
         for parameter in part.parameters.all():
             # Exclude any which have already been used for default KiCad fields
