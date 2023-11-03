@@ -131,6 +131,9 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         symbol = self.get_parameter_value(part, template_id, backup_value=symbol)
 
+        # KiCad does not like colons in their symbol names. Replace with a simple white space.
+        symbol = symbol.replace(':', ' ')
+
         return str(symbol)
 
     def get_footprint(self, part):
