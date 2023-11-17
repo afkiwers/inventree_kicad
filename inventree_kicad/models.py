@@ -51,6 +51,23 @@ class SelectedCategory(models.Model):
         help_text=_('Default value parameter template for this category, if not specified for an individual part'),
     )
 
+    footprint_parameter_template = models.ForeignKey(
+        PartParameterTemplate,
+        on_delete=models.SET_NULL,
+        related_name="footprint_kicad_categories",
+        blank=True,
+        null=True,
+        verbose_name=_('Footprint Parameter Template'),
+        help_text=_('Footprint parameter template for this category, will use KICAD_FOOTPRINT_PARAMETER setting if not set'),
+    )
+
+    footprint_parameter_mapping = models.JSONField(
+        blank=True,
+        null=True,
+        verbose_name=_('Footprint Parameter Mapping'),
+        help_text=_('Mapping from footprint parameter values to actual KiCad footprint names')
+    )
+
     def __str__(self):
         """Default name string which is returned when object is called"""
         return f'{self.category.pathstring}'
