@@ -4,6 +4,7 @@ from rest_framework import serializers
 from rest_framework.reverse import reverse_lazy
 
 from InvenTree.helpers import str2bool
+from InvenTree.helpers_model import construct_absolute_url
 from part.models import Part, PartCategory, PartParameter
 
 
@@ -227,11 +228,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 excluded_templates.append(str(kicad_category.default_value_parameter_template.id))
 
         # Build out an absolute URL for the part instance
-        if 'request' in self.context:
-            url = self.request['context'].build_absolute_url(f'/part/{part.id}/')
-        else:
-            from InvenTree.helpers_model import construct_absolute_url
-            url = construct_absolute_url(f'/part/{part.id}/')
+        url = construct_absolute_url(f'/part/{part.id}/', request=self.context.get('request'))
 
         # Always include the InvenTree field, which has the ID of the part
         fields = {

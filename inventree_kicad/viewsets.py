@@ -111,5 +111,6 @@ class PartDetail(generics.RetrieveAPIView):
         """Add the parent plugin instance to the serializer contenxt"""
 
         kwargs['plugin'] = self.kwargs['plugin']
+        kwargs['context'] = {'request': self.request}
 
         return self.serializer_class(*args, **kwargs)
