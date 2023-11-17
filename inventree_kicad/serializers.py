@@ -131,8 +131,23 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         symbol = self.get_parameter_value(part, template_id, backup_value=symbol)
 
-        # KiCad does not like colons in their symbol names. Replace with a simple white space.
-        symbol = symbol.replace(':', ' ')
+        # KiCad does not like colons in their symbol names.
+        # Check if there is more than one colon present, if so rebuild string and honour only the first
+        # colon. Replace the other colons with underscores.
+        cnt = symbol.count(':')
+        if cnt != 1:
+            _spiltStr = symbol.split(':')
+            tmpStr = ""
+
+            for iter, s in enumerate(_spiltStr):
+                tmpStr += s
+
+                if iter < 1:
+                    tmpStr += ':'
+                elif iter < cnt:    # make sure we suppress postfixes
+                    tmpStr += '_'
+
+            symbol = tmpStr
 
         return str(symbol)
 
