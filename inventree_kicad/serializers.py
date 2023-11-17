@@ -136,18 +136,18 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         # colon. Replace the other colons with underscores.
         cnt = symbol.count(':')
         if cnt != 1:
-            _spiltStr = symbol.split(':')
-            tmpStr = ""
+            spilt_str = symbol.split(':')
+            tmp_str = ""
 
-            for iter, s in enumerate(_spiltStr):
-                tmpStr += s
+            for iter, s in enumerate(spilt_str):
+                tmp_str += s
 
                 if iter < 1:
-                    tmpStr += ':'
+                    tmp_str += ':'
                 elif iter < cnt:    # make sure we suppress postfixes
-                    tmpStr += '_'
+                    tmp_str += '_'
 
-            symbol = tmpStr
+            symbol = tmp_str
 
         return str(symbol)
 
