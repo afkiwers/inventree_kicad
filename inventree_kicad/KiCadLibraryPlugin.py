@@ -37,7 +37,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
 
     WEBSITE = "https://github.com/afkiwers"
 
-    MIN_VERSION = '0.11.0'
+    MIN_VERSION = '0.12.0'
 
     SETTINGS = {
         'KICAD_ENABLE_SUBCATEGORY': {
