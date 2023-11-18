@@ -83,8 +83,13 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             return backup_value
 
         try:
-            return PartParameter.objects.filter(part=part, template__pk=template_id).first().data
+            parameter = PartParameter.objects.filter(part=part, template__pk=template_id).first()
         except (ValueError, PartParameter.DoesNotExist):
+            parameter = None
+
+        if parameter:
+            return parameter.data
+        else:
             return backup_value
 
     def get_reference(self, part):
