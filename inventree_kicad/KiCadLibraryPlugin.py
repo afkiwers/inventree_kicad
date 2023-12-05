@@ -15,7 +15,6 @@ from django.http import JsonResponse
 from django.urls import include, re_path
 from django.utils.translation import gettext_lazy as _
 
-from company.models import Company
 from part.models import Part, PartParameterTemplate, PartParameter
 from part.views import PartIndex
 from plugin import InvenTreePlugin
@@ -154,7 +153,7 @@ class KiCadLibraryPlugin(PanelMixin, UrlsMixin, AppMixin, SettingsMixin, InvenTr
             reader = csv.DictReader(decoded_file)
 
             # create dict from selection
-            fieldNameMatching = json.loads(request.POST['fieldNameMatching'])
+            field_name_matching = json.loads(request.POST['fieldNameMatching'])
 
             errors = ["The following PartIDs do not exist: "]
 
@@ -170,16 +169,16 @@ class KiCadLibraryPlugin(PanelMixin, UrlsMixin, AppMixin, SettingsMixin, InvenTr
                             continue
 
                         # skip unwanted columns
-                        if not fieldNameMatching.get(csv_header, None):
+                        if not field_name_matching.get(csv_header, None):
                             continue
 
                         # find and/or add template and value
-                        template = PartParameterTemplate.objects.get(id=fieldNameMatching[csv_header])
+                        template = PartParameterTemplate.objects.get(id=field_name_matching[csv_header])
                         parameter = PartParameter.objects.get_or_create(part=part, template=template)
                         parameter[0].data = row[csv_header]
                         parameter[0].save()
 
-                except Exception as exp:
+                except Exception:
                     errors.append(row['InvenTree'])
                     part = None
 
