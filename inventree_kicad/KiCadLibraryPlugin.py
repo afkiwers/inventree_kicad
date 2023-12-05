@@ -6,18 +6,25 @@ This plugin supplies the endpoints and data needed for KiCad to display selected
 corresponding parts within the Kicad environment.
 
 """
+import csv
 import datetime
+import json
 
+from django.conf.urls import url
+from django.http import JsonResponse
 from django.urls import include, re_path
 from django.utils.translation import gettext_lazy as _
 
+from company.models import Company
+from part.models import Part, PartParameterTemplate, PartParameter
+from part.views import PartIndex
 from plugin import InvenTreePlugin
-from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin
+from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin, PanelMixin
 
 from .version import KICAD_PLUGIN_VERSION
 
 
-class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
+class KiCadLibraryPlugin(PanelMixin, UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
     """Plugin for KiCad Library Endpoint.
     
     Provides a set of API endpoints which conform to the KiCad REST API specification.
@@ -81,7 +88,8 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
         },
         'KICAD_EXCLUDE_FROM_BOARD_PARAMETER': {
             'name': _('Board Exclusion Parameter'),
-            'description': _('The part parameter to use for to exclude it from the netlist when passing from schematic to board.'),
+            'description': _(
+                'The part parameter to use for to exclude it from the netlist when passing from schematic to board.'),
             'model': 'part.partparametertemplate',
         },
         'KICAD_EXCLUDE_FROM_SIM_PARAMETER': {
@@ -91,6 +99,21 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
         },
     }
 
+    def get_custom_panels(self, view, request):
+        panels = []
+
+        # This panel will *only* display on the PurchaseOrder view,
+        if isinstance(view, PartIndex):
+            self.part_parameter_templates = PartParameterTemplate.objects.filter(name__icontains='KiCad')
+
+            panels.append({
+                'title': 'Import KiCad Metadata',
+                'icon': 'fa-file-import',
+                'content_template': 'inventree_kicad/kicad_csv_import.html',
+            })
+
+        return panels
+
     def setup_urls(self):
         """Returns the URLs defined by this plugin."""
 
@@ -99,20 +122,70 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
         return [
             re_path(r'v1/', include([
                 re_path(r'parts/', include([
-                    re_path('category/(?P<id>.+).json$', viewsets.PartsPreviewList.as_view(), {'plugin': self}, name='kicad-part-category-list'),
-                    re_path('(?P<pk>.+).json$', viewsets.PartDetail.as_view(), {'plugin': self}, name='kicad-part-detail'),
+                    re_path('category/(?P<id>.+).json$', viewsets.PartsPreviewList.as_view(), {'plugin': self},
+                            name='kicad-part-category-list'),
+                    re_path('(?P<pk>.+).json$', viewsets.PartDetail.as_view(), {'plugin': self},
+                            name='kicad-part-detail'),
 
                     # Anything else goes to the part list
                     re_path('.*$', viewsets.PartsPreviewList.as_view(), {'plugin': self}, name='kicad-part-list'),
                 ])),
 
                 # List of available categories
-                re_path('categories(.json)?/?$', viewsets.CategoryList.as_view(), {'plugin': self}, name='kicad-category-list'),
+                re_path('categories(.json)?/?$', viewsets.CategoryList.as_view(), {'plugin': self},
+                        name='kicad-category-list'),
 
                 # Anything else goes to the index view
                 re_path('^.*$', viewsets.Index.as_view(), name='kicad-index'),
             ])),
 
+            url(r'upload(?:\.(?P<format>json))?$', self.import_meta_data, name='meta_data_upload'),
+
             # Anything else, redirect to our top-level v1 page
             re_path('^.*$', viewsets.Index.as_view(), name='kicad-index'),
         ]
+
+    # Define the function that will be called.
+    def import_meta_data(self, request):
+        file = request.FILES.get('file', False)
+
+        if file:
+            decoded_file = file.read().decode('utf-8').splitlines()
+            reader = csv.DictReader(decoded_file)
+
+            # create dict from selection
+            fieldNameMatching = json.loads(request.POST['fieldNameMatching'])
+
+            errors = ["The following PartIDs do not exist: "]
+
+            for row in reader:
+
+                try:
+                    part = Part.objects.get(id=row['InvenTree'])
+
+                    for csv_header, value in row.items():
+
+                        # skip part ID
+                        if csv_header == 'InvenTree':
+                            continue
+
+                        # skip unwanted columns
+                        if not fieldNameMatching.get(csv_header, None):
+                            continue
+
+                        # find and/or add template and value
+                        template = PartParameterTemplate.objects.get(id=fieldNameMatching[csv_header])
+                        parameter = PartParameter.objects.get_or_create(part=part, template=template)
+                        parameter[0].data = row[csv_header]
+                        parameter[0].save()
+
+                except Exception as exp:
+                    errors.append(row['InvenTree'])
+                    part = None
+
+                if part:
+                    pass
+
+            return JsonResponse({'error': errors}, status=422)
+
+        return JsonResponse({'error': 'No file uploaded!'}, status=204)
