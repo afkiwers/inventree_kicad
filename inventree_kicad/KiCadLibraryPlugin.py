@@ -154,9 +154,7 @@ class KiCadLibraryPlugin(PanelMixin, UrlsMixin, AppMixin, SettingsMixin, Setting
             re_path('^.*$', viewsets.Index.as_view(), name='kicad-index'),
         ]
 
-    # Define the function that will be called.
-    # noqa
-    def import_meta_data(self, request):
+    def import_meta_data(self, request): # noqa
 
         if request.FILES.get('file', False):
             file = request.FILES.get('file', False)
@@ -282,6 +280,6 @@ class KiCadLibraryPlugin(PanelMixin, UrlsMixin, AppMixin, SettingsMixin, Setting
                     PartAttachment.objects.get_or_create(part_id=inventree_id, link=datasheet,
                                                          comment='datasheet')
 
-            return JsonResponse({'error': 'OK'}, status=200)
+            return JsonResponse({}, status=200)
 
         return JsonResponse({'error': 'No file uploaded!'}, status=204)
