@@ -23,7 +23,7 @@ from part.models import Part, PartParameterTemplate, PartParameter, PartAttachme
 from plugin import InvenTreePlugin
 from plugin.base.integration.mixins import SettingsContentMixin
 from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin, PanelMixin
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as elementTree
 
 from .version import KICAD_PLUGIN_VERSION
 
@@ -155,6 +155,7 @@ class KiCadLibraryPlugin(PanelMixin, UrlsMixin, AppMixin, SettingsMixin, Setting
         ]
 
     # Define the function that will be called.
+    # noqa
     def import_meta_data(self, request):
 
         if request.FILES.get('file', False):
@@ -165,7 +166,7 @@ class KiCadLibraryPlugin(PanelMixin, UrlsMixin, AppMixin, SettingsMixin, Setting
                 return JsonResponse({'error': 'XML file expected!'}, status=422)
 
             # Read the XML file, and find all components
-            tree = ET.parse(file)
+            tree = elementTree.parse(file)
             root = tree.getroot()
 
             # Grab the "components" list
