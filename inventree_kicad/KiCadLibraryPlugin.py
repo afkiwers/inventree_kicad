@@ -6,24 +6,29 @@ This plugin supplies the endpoints and data needed for KiCad to display selected
 corresponding parts within the Kicad environment.
 
 """
-import csv
 import datetime
 import json
 
+from django.core.validators import URLValidator
+
 from django.conf.urls import url
 from django.http import JsonResponse
+from django.template.loader import render_to_string
 from django.urls import include, re_path
 from django.utils.translation import gettext_lazy as _
 
-from part.models import Part, PartParameterTemplate, PartParameter
-from part.views import PartIndex
+from InvenTree.helpers import str2bool
+from common.notifications import logger
+from part.models import Part, PartParameterTemplate, PartParameter, PartAttachment
 from plugin import InvenTreePlugin
+from plugin.base.integration.mixins import SettingsContentMixin
 from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin, PanelMixin
+import xml.etree.ElementTree as ET
 
 from .version import KICAD_PLUGIN_VERSION
 
 
-class KiCadLibraryPlugin(PanelMixin, UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
+class KiCadLibraryPlugin(PanelMixin, UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixin, InvenTreePlugin):
     """Plugin for KiCad Library Endpoint.
     
     Provides a set of API endpoints which conform to the KiCad REST API specification.
@@ -57,6 +62,14 @@ class KiCadLibraryPlugin(PanelMixin, UrlsMixin, AppMixin, SettingsMixin, InvenTr
             'name': _('Include IPN in part fields'),
             'description': _(
                 'When activated, the IPN is included in the KiCad fields for a part'),
+            'validator': bool,
+            'default': False,
+        },
+        'KICAD_META_DATA_IMPORT_ADD_DATASHEET': {
+            'name': _('Add datasheet if URL is valid'),
+            'description': _(
+                'When activated, the plugin will add the datasheet URL (comment will be \'datasheet\') to the '
+                'attachments.'),
             'validator': bool,
             'default': False,
         },
@@ -98,20 +111,17 @@ class KiCadLibraryPlugin(PanelMixin, UrlsMixin, AppMixin, SettingsMixin, InvenTr
         },
     }
 
-    def get_custom_panels(self, view, request):
-        panels = []
+    def get_settings_content(self, request):
+        """Custom settings content for the plugin."""
 
-        # This panel will *only* display on the PurchaseOrder view,
-        if isinstance(view, PartIndex):
-            self.part_parameter_templates = PartParameterTemplate.objects.filter(name__icontains='KiCad')
-
-            panels.append({
-                'title': 'Import KiCad Metadata',
-                'icon': 'fa-file-import',
-                'content_template': 'inventree_kicad/kicad_csv_import.html',
-            })
-
-        return panels
+        # Use djangos template rendering engine and return html as string
+        return render_to_string('inventree_kicad/kicad_bom_import.html',
+                                context={
+                                    'kicad_parameters': ['Reference', 'Footprint', 'Symbol'],
+                                    'part_parameter_templates': PartParameterTemplate.objects.filter(
+                                        name__icontains='KiCad')
+                                },
+                                request=request)
 
     def setup_urls(self):
         """Returns the URLs defined by this plugin."""
@@ -146,45 +156,131 @@ class KiCadLibraryPlugin(PanelMixin, UrlsMixin, AppMixin, SettingsMixin, InvenTr
 
     # Define the function that will be called.
     def import_meta_data(self, request):
-        file = request.FILES.get('file', False)
 
-        if file:
-            decoded_file = file.read().decode('utf-8').splitlines()
-            reader = csv.DictReader(decoded_file)
+        if request.FILES.get('file', False):
+            file = request.FILES.get('file', False)
+
+            # Make sure we have got a xml file
+            if 'xml' not in file.content_type:
+                return JsonResponse({'error': 'XML file expected!'}, status=422)
+
+            # Read the XML file, and find all components
+            tree = ET.parse(file)
+            root = tree.getroot()
+
+            # Grab the "components" list
+            components = root.find('components')
+            inventree_parts = set()
 
             # create dict from selection
             field_name_matching = json.loads(request.POST['fieldNameMatching'])
 
-            errors = ["The following PartIDs do not exist: "]
+            # user needs to match all KiCad Parameter
+            if 'false' in field_name_matching.values():
+                return JsonResponse(
+                    {'error': 'Some KiCad Parameters were not matched with an InvenTree parameter.'},
+                    status=406
+                )
 
-            for row in reader:
+            kicad_footprint_param_id = field_name_matching['Footprint']
+            kicad_reference_param_id = field_name_matching['Reference']
+            kicad_symbol_param_id = field_name_matching['Symbol']
+
+            # Iterate through all child components with the tag 'comp'
+            for idx, comp in enumerate(components.findall('comp')):
+
+                ref = comp.attrib.get('ref', None)
+
+                # Missing ref - continue
+                if not ref:
+                    logger.debug('Missing ref, skipping')
+                    continue
+
+                # Reformat the reference from CAV123 to CAV? or R2 to R
+                ref = ''.join([c for c in ref if not c.isdigit()])
+
+                datasheet = None
+                if comp.find('datasheet') is not None:
+                    datasheet = comp.find('datasheet').text
+
+                footprint = None
+                if comp.find('footprint') is not None:
+                    footprint = comp.find('footprint').text
+                else:
+                    logger.debug('Missing footprint, skipping')
+                    continue
+
+                lib_name = None
+                lib_part = None
+                if comp.find('libsource') is not None:
+                    libsource = comp.find('libsource')
+
+                    lib_name = libsource.attrib.get('lib', None)
+                    lib_part = libsource.attrib.get('part', None)
+
+                if not lib_name or not lib_part:
+                    logger.debug('Missing lib_name or lib_part, skipping')
+                    continue
+
+                symbol = f'{lib_name}:{lib_part}'
+
+                inventree_id = None
+
+                for field in comp.find('fields'):
+                    if str(field.attrib.get('name', '')).lower().startswith('inventree'):
+                        inventree_id = field.text
+                        break
+
+                # Missing inventree_id, cannot continue
+                if not inventree_id:
+                    logger.debug('Missing inventree_id, skipping')
+                    continue
 
                 try:
-                    part = Part.objects.get(id=row['InvenTree'])
+                    inventree_id = int(inventree_id)
+                except ValueError:
+                    logger.debug('InvenTree ID is not an integer, skipping')
+                    continue
 
-                    for csv_header, value in row.items():
+                # Already checked this one
+                if inventree_id in inventree_parts:
+                    continue
 
-                        # skip part ID
-                        if csv_header == 'InvenTree':
-                            continue
+                # add to our cache, we use this to not add the same data multiple times
+                inventree_parts.add(inventree_id)
 
-                        # skip unwanted columns
-                        if not field_name_matching.get(csv_header, None):
-                            continue
+                try:
+                    part = Part.objects.get(id=inventree_id)
+                except Part.DoesNotExist:
+                    logger.debug(f'Part ID: {inventree_id} does not belong to an existing part, skipping')
+                    continue
 
-                        # find and/or add template and value
-                        template = PartParameterTemplate.objects.get(id=field_name_matching[csv_header])
-                        parameter = PartParameter.objects.get_or_create(part=part, template=template)
-                        parameter[0].data = row[csv_header]
-                        parameter[0].save()
+                # find and/or add template and value
+                template = PartParameterTemplate.objects.get(id=kicad_reference_param_id)
+                parameter = PartParameter.objects.get_or_create(part=part, template=template)
+                parameter[0].data = ref
+                parameter[0].save()
 
-                except Exception:
-                    errors.append(row['InvenTree'])
-                    part = None
+                template = PartParameterTemplate.objects.get(id=kicad_footprint_param_id)
+                parameter = PartParameter.objects.get_or_create(part=part, template=template)
+                parameter[0].data = footprint
+                parameter[0].save()
 
-                if part:
-                    pass
+                template = PartParameterTemplate.objects.get(id=kicad_symbol_param_id)
+                parameter = PartParameter.objects.get_or_create(part=part, template=template)
+                parameter[0].data = symbol
+                parameter[0].save()
 
-            return JsonResponse({'error': errors}, status=422)
+                if datasheet and str2bool(self.get_setting('KICAD_META_DATA_IMPORT_ADD_DATASHEET', False)):
+                    try:
+                        URLValidator()(datasheet)
+                    except Exception as e:
+                        logger.debug(f'URL is invalid: {e}')
+                        continue
+
+                    PartAttachment.objects.get_or_create(part_id=inventree_id, link=datasheet,
+                                                         comment='datasheet')
+
+            return JsonResponse({'error': 'OK'}, status=200)
 
         return JsonResponse({'error': 'No file uploaded!'}, status=204)
