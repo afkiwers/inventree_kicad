@@ -228,7 +228,13 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
 
                 inventree_id = None
 
-                for field in comp.find('fields'):
+                # check if there are fields, some parts may not have any like fiducials.
+                fields = comp.find('fields')
+                if not fields:
+                    logger.debug('Missing fields skipping')
+                    continue
+
+                for field in fields:
                     if str(field.attrib.get('name', '')).lower().startswith('inventree'):
                         inventree_id = field.text
                         break
