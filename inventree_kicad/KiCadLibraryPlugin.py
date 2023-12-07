@@ -114,14 +114,17 @@ class KiCadLibraryPlugin(PanelMixin, UrlsMixin, AppMixin, SettingsMixin, Setting
     def get_settings_content(self, request):
         """Custom settings content for the plugin."""
 
-        # Use djangos template rendering engine and return html as string
-        return render_to_string('inventree_kicad/kicad_bom_import.html',
-                                context={
-                                    'kicad_parameters': ['Reference', 'Footprint', 'Symbol'],
-                                    'part_parameter_templates': PartParameterTemplate.objects.filter(
-                                        name__icontains='KiCad')
-                                },
-                                request=request)
+        try:
+            # Use djangos template rendering engine and return html as string
+            return render_to_string('inventree_kicad/kicad_bom_import.html',
+                                    context={
+                                        'kicad_parameters': ['Reference', 'Footprint', 'Symbol'],
+                                        'part_parameter_templates': PartParameterTemplate.objects.filter(
+                                            name__icontains='KiCad')
+                                    },
+                                    request=request)
+        except Exception as exp:
+            return f'<div class="panel-heading"><h4>KiCad Metadata Import</h4></div><div class=\'panel-content\'><div class=\'alert alert-info alert-block\'>Error: {exp}</div></div>'
 
     def setup_urls(self):
         """Returns the URLs defined by this plugin."""
@@ -154,7 +157,7 @@ class KiCadLibraryPlugin(PanelMixin, UrlsMixin, AppMixin, SettingsMixin, Setting
             re_path('^.*$', viewsets.Index.as_view(), name='kicad-index'),
         ]
 
-    def import_meta_data(self, request): # noqa
+    def import_meta_data(self, request):  # noqa
 
         if request.FILES.get('file', False):
             file = request.FILES.get('file', False)
