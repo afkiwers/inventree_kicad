@@ -22,13 +22,13 @@ from common.notifications import logger
 from part.models import Part, PartParameterTemplate, PartParameter, PartAttachment
 from plugin import InvenTreePlugin
 from plugin.base.integration.mixins import SettingsContentMixin
-from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin, PanelMixin
+from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin
 import xml.etree.ElementTree as elementTree
 
 from .version import KICAD_PLUGIN_VERSION
 
 
-class KiCadLibraryPlugin(PanelMixin, UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixin, InvenTreePlugin):
+class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixin, InvenTreePlugin):
     """Plugin for KiCad Library Endpoint.
     
     Provides a set of API endpoints which conform to the KiCad REST API specification.
