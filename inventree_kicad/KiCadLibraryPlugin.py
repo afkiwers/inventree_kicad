@@ -286,8 +286,13 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
                         logger.debug(f'URL is invalid: {e}')
                         continue
 
-                    PartAttachment.objects.get_or_create(part_id=inventree_id, link=datasheet,
-                                                         comment='datasheet')
+                    try:
+                        # inventree is not happy with urls which are too long, so let's make sure that this
+                        # doesn't prevent us from importing all the following parts.
+                        PartAttachment.objects.get_or_create(part_id=inventree_id, link=datasheet, comment='datasheet')
+                    except Exception as exp:
+                        logger.debug(exp)
+                        pass
 
             return JsonResponse({}, status=200)
 
