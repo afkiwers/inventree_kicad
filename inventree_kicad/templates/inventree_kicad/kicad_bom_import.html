@@ -3,6 +3,29 @@
 {% load static %}
 
 <script>
+
+    window.onload = () => {
+        const get_url = "{% url 'plugin:kicad-library-plugin:get_import_progress' %}"
+
+        setInterval(startTimer, 250);
+
+        function startTimer() {
+
+            $.ajax({
+                url: get_url,
+                type: 'GET',
+                dataType: 'json',
+                success: function (res) {
+
+                    document.getElementById("progress_bar").setAttribute("aria-valuenow", res.value);
+                    document.getElementById("progress_bar").setAttribute("style", "width:" + res.value + "%;");
+
+                    document.getElementById("progress_bar").innerText = res.value + "%";
+                }
+            });
+        }
+    }
+
     async function upload_csv() {
         var formData = new FormData();
 
@@ -11,6 +34,7 @@
         const cmd_url = "{% url 'plugin:kicad-library-plugin:meta_data_upload' %}"
 
         document.getElementById("import_spinner").hidden = false;
+        document.getElementById("progress_bar_container").hidden = false;
 
         inventreeFormDataUpload(url = cmd_url, data = formData).then(function (data) {
 
@@ -53,6 +77,16 @@
 </div>
 
 <div class='panel-content'>
+    <div id="progress_bar_container" class="container mb-5 mt-5" hidden>
+
+        <div class="progress">
+            <div id="progress_bar" class="progress-bar" role="progressbar" style="width: 0;"
+                 aria-valuenow="0"
+                 aria-valuemin="0"
+                 aria-valuemax="100">
+            </div>
+        </div>
+    </div>
 
     <!-- Generic note for user -->
     <div class='alert alert-info alert-block'>
@@ -72,7 +106,6 @@
             </li>
         </ul>
     </div>
-
 </div>
 
 <form id="upload-form">
