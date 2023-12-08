@@ -85,9 +85,9 @@ It's recommended to put a **#** as prefix to make sure it is at the top of the l
 
 ## Use in KiCad
 
-Once everything has been configured properly, KiCad should be able to display the all the Categories and parts using the Symbol Picker. 
+Once everything has been configured properly, KiCad should be able to display all the categories and parts using the Symbol Picker. 
 
-Inside you schematic, you can either press use the shortcut **A** or navigate to the ribbon and press `Place -> Add Symbol`.
+Inside the schematic, one can either use the shortcut and press **A** or navigate to the ribbon at the top and press `Place -> Add Symbol`.
 
 ![image](/images/eeschema_open_chooser.png)
 
