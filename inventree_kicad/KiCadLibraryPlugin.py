@@ -7,7 +7,6 @@ corresponding parts within the Kicad environment.
 
 """
 import datetime
-import json
 
 from django.core.validators import URLValidator
 
@@ -162,6 +161,17 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
         if request.FILES.get('file', False):
             file = request.FILES.get('file', False)
 
+            kicad_footprint_param_id = self.plugin.get_setting('KICAD_SYMBOL_PARAMETER', None)
+            kicad_reference_param_id = self.plugin.get_setting('KICAD_SYMBOL_PARAMETER', None)
+            kicad_symbol_param_id = self.plugin.get_setting('KICAD_SYMBOL_PARAMETER', None)
+
+            if kicad_footprint_param_id is None or kicad_reference_param_id is None or kicad_symbol_param_id is None:
+                return JsonResponse(
+                    {
+                        'error': 'Missing parameters. Please make sure you have selected appropriate parameters in the settings before attempting to import anything.'
+                    },
+                    status=422)
+
             # Make sure we have got a xml file
             if 'xml' not in file.content_type:
                 return JsonResponse({'error': 'XML file expected!'}, status=422)
@@ -173,20 +183,6 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             # Grab the "components" list
             components = root.find('components')
             inventree_parts = set()
-
-            # create dict from selection
-            field_name_matching = json.loads(request.POST['fieldNameMatching'])
-
-            # user needs to match all KiCad Parameter
-            if 'false' in field_name_matching.values():
-                return JsonResponse(
-                    {'error': 'Some KiCad Parameters were not matched with an InvenTree parameter.'},
-                    status=406
-                )
-
-            kicad_footprint_param_id = field_name_matching['Footprint']
-            kicad_reference_param_id = field_name_matching['Reference']
-            kicad_symbol_param_id = field_name_matching['Symbol']
 
             # Iterate through all child components with the tag 'comp'
             for idx, comp in enumerate(components.findall('comp')):

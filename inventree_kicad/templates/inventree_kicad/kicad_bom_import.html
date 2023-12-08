@@ -5,18 +5,7 @@
 <script>
     async function upload_csv() {
         var formData = new FormData();
-        var fieldNameMatching = {};
 
-        $('#tblFieldMatching tr[id^="kicad_"]').each(function () {
-
-            let selectedIndex = this.cells[1].children[0].selectedIndex;
-            let selectedVal = this.cells[1].children[0].options[selectedIndex].value
-
-            fieldNameMatching[this.cells[0].getAttribute("value")] = selectedVal
-
-        });
-
-        formData.append("fieldNameMatching", JSON.stringify(fieldNameMatching))  // Matches those that begin with 'tcol'
         formData.append("file", fileupload.files[0]);
 
         const cmd_url = "{% url 'plugin:kicad-library-plugin:meta_data_upload' %}"
@@ -31,7 +20,7 @@
 
     }
 
-    async function extract_header() {
+    async function submit_button_controller() {
         $('#upload-form').on('change', function (evt) {
 
             if (evt.target.files == null) {
@@ -86,35 +75,11 @@
     <div class="mb-3">
         <label for="formFile" class="form-label">Please select an XML file</label>
         <input class="form-control" accept=".xml" type="file" id="fileupload" name="fileupload"
-               onchange="extract_header()">
+               onchange="submit_button_controller()">
     </div>
-
-    <table class="table table-condensed" id="tblFieldMatching">
-        <tbody>
-        <tr>
-            <th>KiCad Parameter</th>
-            <th>Available InvenTree Parameter</th>
-        </tr>
-
-        {% for ki_para in kicad_parameters %}
-            <tr id="kicad_{{ forloop.counter0 }}">
-                <td value="{{ ki_para }}"><em>{{ ki_para }}</em></td>
-                <td>
-                    <select class="select form-control" name="parameters">
-                        <option value=false>-----</option>
-                        {% for template in part_parameter_templates %}
-                            <option value="{{ template.id }}">{{ template.name }}</option>
-                        {% endfor %}
-                    </select>
-                </td>
-            </tr>
-        {% endfor %}
-
-        </tbody>
-    </table>
 
 </form>
 
-<button type="submit" class="btn btn-primary" onclick="upload_csv()" title='Import' id="btn_import" disabled>Import
-    Data
+<button type="submit" class="btn btn-primary" onclick="upload_csv()" title='Import' id="btn_import" disabled>
+    Import Metadata
 </button>
