@@ -7,7 +7,6 @@ corresponding parts within the Kicad environment.
 
 """
 import datetime
-import json
 
 from django.core.validators import URLValidator
 
@@ -166,9 +165,12 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             kicad_reference_param_id = self.plugin.get_setting('KICAD_SYMBOL_PARAMETER', None)
             kicad_symbol_param_id = self.plugin.get_setting('KICAD_SYMBOL_PARAMETER', None)
 
-            if kicad_footprint_param_id is None or kicad_reference_param_id is None  or kicad_symbol_param_id is None:
-                return JsonResponse({'error': 'Missing parameters. Please make sure you have selected appropriate parameters in the settings before attempting to import anything.'}, status=422)
-
+            if kicad_footprint_param_id is None or kicad_reference_param_id is None or kicad_symbol_param_id is None:
+                return JsonResponse(
+                    {
+                        'error': 'Missing parameters. Please make sure you have selected appropriate parameters in the settings before attempting to import anything.'
+                    },
+                    status=422)
 
             # Make sure we have got a xml file
             if 'xml' not in file.content_type:
