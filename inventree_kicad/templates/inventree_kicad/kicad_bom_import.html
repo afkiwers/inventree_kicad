@@ -10,7 +10,12 @@
 
         const cmd_url = "{% url 'plugin:kicad-library-plugin:meta_data_upload' %}"
 
+        document.getElementById("import_spinner").hidden = false;
+
         inventreeFormDataUpload(url = cmd_url, data = formData).then(function (data) {
+
+            document.getElementById("import_spinner").hidden = true;
+
             showMessage("Metadata has been processed!", {
                 style: 'success',
                 icon: 'fas fa-server icon-green',
@@ -82,4 +87,5 @@
 
 <button type="submit" class="btn btn-primary" onclick="upload_csv()" title='Import' id="btn_import" disabled>
     Import Metadata
+    <span class="spinner-border spinner-border-sm" id="import_spinner" hidden role="status" aria-hidden="true"></span>
 </button>
