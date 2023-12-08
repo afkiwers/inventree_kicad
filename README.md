@@ -96,7 +96,7 @@ The Symbol Chooser should open up and display the parts sourced from InvenTree.
 ![image](/images/symbol_chooser.png)
 
 ## Importing Metadata from Previous Projects
-Hence KiCad does not offer a way to push information back to the server, InvenTree needs to have all that metadata such as footprints and symbols added manually. This can be very tedious, especially when there are thousands of parts.
+Since KiCad does not offer a way to push information back to the server, InvenTree needs to have all that metadata such as footprints and symbols added manually. This can be very tedious, especially when there are thousands of parts.
 
 This plugin's import tool uses KiCads intermediate file which is created whenever there is a BOM export. This file contains all the project's data which is needed.
 
