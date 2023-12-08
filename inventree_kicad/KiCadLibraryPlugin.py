@@ -108,6 +108,12 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'description': _('The part parameter to use for to exclude it from the simulation.'),
             'model': 'part.partparametertemplate',
         },
+        'STAUTS_BAR_PROGRESS': {
+            'name': _('Status bar progress'),
+            'description': _('This is used to display a status bar to the user'),
+            'default': 0,
+            'hidden': True
+        },
     }
 
     def get_settings_content(self, request):
@@ -151,10 +157,16 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             ])),
 
             url(r'upload(?:\.(?P<format>json))?$', self.import_meta_data, name='meta_data_upload'),
+            url(r'progress_bar_status', self.get_import_progress, name='get_import_progress'),
 
             # Anything else, redirect to our top-level v1 page
             re_path('^.*$', viewsets.Index.as_view(), name='kicad-index'),
         ]
+
+    def get_import_progress(self, request):
+        return JsonResponse({
+            'value': self.get_setting('STAUTS_BAR_PROGRESS', None)
+        }, status=200)
 
     def import_meta_data(self, request):  # noqa
 
@@ -184,8 +196,16 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             components = root.find('components')
             inventree_parts = set()
 
+            # reset progress bar
+            self.set_setting('STAUTS_BAR_PROGRESS', 0)
+
+            # we start at 0
+            comp_cnt = len(components.findall('comp')) - 1
+
             # Iterate through all child components with the tag 'comp'
             for idx, comp in enumerate(components.findall('comp')):
+
+                self.set_setting('STAUTS_BAR_PROGRESS', int((idx / comp_cnt) * 100))
 
                 ref = comp.attrib.get('ref', None)
 
