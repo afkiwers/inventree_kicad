@@ -165,7 +165,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             kicad_reference_param_id = self.get_setting('KICAD_REFERENCE_PARAMETER', None)
             kicad_symbol_param_id = self.get_setting('KICAD_SYMBOL_PARAMETER', None)
 
-            if kicad_footprint_param_id is '' or kicad_reference_param_id is '' or kicad_symbol_param_id is '':
+            if kicad_footprint_param_id == '' or kicad_reference_param_id == '' or kicad_symbol_param_id == '':
                 return JsonResponse(
                     {
                         'error': 'Missing parameters. Please make sure you have selected appropriate parameters in the settings before attempting to import anything.'
