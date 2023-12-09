@@ -1,6 +1,6 @@
 # InvenTree KiCad - HTTP Library Plugin
 
-A KiCad Conform API endpoint plugin, designed for seamless integration with [InvenTree](https://inventree.org), empowers users to seamlessly incorporate InvenTree parts into KiCad's parts library tool. Please note that this plugin exclusively offers metadata and necessitates the presence of corresponding symbol and footprint libraries within the KiCad EDA environment.
+A KiCad Conform API endpoint plugin, designed for integration with [InvenTree](https://inventree.org), empowers users to seamlessly incorporate InvenTree parts into KiCad's parts library tool. Please note that this plugin exclusively offers metadata and necessitates the presence of corresponding symbol and footprint libraries within the KiCad EDA environment.
 
 As of the current stage of development, KiCad exclusively offers read-only access to parts through the HTTP lib interface.
 
