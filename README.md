@@ -2,8 +2,7 @@
 
 A KiCad Conform API endpoint plugin, designed for integration with [InvenTree](https://inventree.org), empowers users to seamlessly incorporate InvenTree parts into KiCad's parts library tool. Please note that this plugin exclusively offers metadata and necessitates the presence of corresponding symbol and footprint libraries within the KiCad EDA environment.
 
-As of the current stage of development, KiCad exclusively offers read-only access to parts through the HTTP lib interface.
-
+As of the current stage of development, KiCad exclusively offers read-only access to parts through the HTTP lib interface. However, this plugin provides a metadata import tool to import chsnges made inside KiCad. This enables users to add footprints, symbols and datasheets to individual parts during the schematic design and reimport that information into InveTree to have it available for the nect time.
 ## Installing the Plugin
 There are several methods available for installing this plugin. To gain a comprehensive understanding of the installation process, please refer to the [InvenTree - Installing a Plugin Guide](https://docs.inventree.org/en/latest/extend/plugins/install/#installation-methods). Depending on your preferred approach, the following instructions will provide you with the necessary information.
 
