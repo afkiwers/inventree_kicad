@@ -22,11 +22,11 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('parameter_value', models.CharField(max_length=200, verbose_name='Footprint Parameter Value')),
                 ('kicad_footprint', models.CharField(max_length=200, verbose_name='KiCad Footprint')),
-                ('category', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='inventree_kicad.selectedcategory')),
+                ('kicad_category', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='inventree_kicad.selectedcategory')),
             ],
             options={
                 'verbose_name': 'Footprint Mapping',
-                'unique_together': {('category', 'parameter_value')},
+                'unique_together': {('kicad_category', 'parameter_value')},
             },
         ),
     ]
