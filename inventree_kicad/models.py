@@ -83,4 +83,3 @@ class FootprintParameterMapping(models.Model):
         app_label = "inventree_kicad"
         verbose_name = "Footprint Mapping"
         unique_together = ("kicad_category", "parameter_value")
-
