@@ -44,6 +44,16 @@ The plugin allows you to set default values when the child part lacks specific d
 
 ![image](https://github.com/afkiwers/inventree_kicad/raw/main/images/admin_add_category.png)
 
+#### Using Footprint Parameter Mappings
+
+If you already have Footprint/Package Type parameters on your parts and
+don't want to specify a separate KiCad Footprint Parameter for them, you
+can use the Footprint Parameter Mapping functionality to map from it to
+KiCad Footprint names. Simply add the desired mappings to the KiCad
+Category:
+
+![image](https://github.com/afkiwers/inventree_kicad/raw/main/images/admin_footprint_mappings.png)
+
 ## Creating User Access Tokens
 Head back to the admin backend and click on Tokens. Click on "ADD Token" to generate a token dedicated to a particular user. It is important to emphasize that it is highly advisable to create individual tokens for each user, rather than employing a single token for everyone.
 
