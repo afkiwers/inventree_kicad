@@ -109,11 +109,10 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'description': _('The part parameter to use for to exclude it from the simulation.'),
             'model': 'part.partparametertemplate',
         },
-        'STAUTS_BAR_PROGRESS': {
-            'name': _('Status bar progress'),
-            'description': _('This is used to display a status bar to the user'),
-            'default': 0,
-            'hidden': True
+        'IMPORT_INVENTREE_ID_IDENTIFIER': {
+            'name': _('Inventree Part ID Identifier'),
+            'description': _('This identifier specifies what key the import tool looks for to get the part ID'),
+            'default': "InvenTree"
         },
     }
 
@@ -258,8 +257,11 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
                     logger.debug('Missing fields skipping')
                     continue
 
+                # load the inventree ID identifier
+                inventree_id_identifier = self.get_setting('IMPORT_INVENTREE_ID_IDENTIFIER', None)
+
                 for field in fields:
-                    if str(field.attrib.get('name', '')).lower().startswith('inventree'):
+                    if str(field.attrib.get('name', '')).lower().startswith(inventree_id_identifier.lower()):
                         inventree_id = field.text
                         break
 

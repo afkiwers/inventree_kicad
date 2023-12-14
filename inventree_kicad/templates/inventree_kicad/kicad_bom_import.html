@@ -19,6 +19,11 @@
                     document.getElementById("progress_bar").setAttribute("aria-valuenow", res.value);
                     document.getElementById("progress_bar").setAttribute("style", "width:" + res.value + "%;");
                     document.getElementById("progress_bar").innerText = res.value + "%";
+
+                    if (res.value === 100) {
+                        exitTimer = true;
+                    }
+
                 }
             });
         }
@@ -86,16 +91,6 @@
 </div>
 
 <div class='panel-content'>
-    <div id="progress_bar_container" class="container mb-5 mt-5" hidden>
-
-        <div class="progress">
-            <div id="progress_bar" class="progress-bar" role="progressbar" style="width: 0;"
-                 aria-valuenow="0"
-                 aria-valuemin="0"
-                 aria-valuemax="100">
-            </div>
-        </div>
-    </div>
 
     <!-- Generic note for user -->
     <div class='alert alert-info alert-block'>
@@ -115,6 +110,18 @@
             </li>
         </ul>
     </div>
+
+    <div id="progress_bar_container" class="container mb-5 mt-5" hidden>
+
+        <div class="progress">
+            <div id="progress_bar" class="progress-bar" role="progressbar" style="width: 0;"
+                 aria-valuenow="0"
+                 aria-valuemin="0"
+                 aria-valuemax="100">
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <form id="upload-form">
