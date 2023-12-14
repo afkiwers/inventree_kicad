@@ -81,7 +81,7 @@ class ProgressIndicator(models.Model):
     file_name = models.CharField(
         max_length=100,
         default='',
-        help_text=_('Name of currently progressed file.')
+        help_text=_('Name of currently processed file.')
     )
 
     def __str__(self):

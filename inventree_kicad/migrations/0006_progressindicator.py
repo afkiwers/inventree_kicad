@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('current_progress', models.IntegerField(default=0, help_text='current progress', validators=[django.core.validators.MinValueValidator(0), django.core.validators.MaxValueValidator(100)])),
-                ('file_name', models.CharField(default='', help_text='Name of currently progressed file.', max_length=100)),
+                ('file_name', models.CharField(default='', help_text='Name of currently processed file.', max_length=100)),
                 ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='get_progress_bar_users', to=settings.AUTH_USER_MODEL, verbose_name='Category')),
             ],
             options={
