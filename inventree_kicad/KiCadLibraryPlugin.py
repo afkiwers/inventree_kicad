@@ -24,6 +24,7 @@ from plugin.base.integration.mixins import SettingsContentMixin
 from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin
 import xml.etree.ElementTree as elementTree
 
+from .models import ProgressIndicator
 from .version import KICAD_PLUGIN_VERSION
 
 
@@ -164,8 +165,11 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
         ]
 
     def get_import_progress(self, request):
+        progress = ProgressIndicator.objects.get_or_create(user=request.user)[0]
+
         return JsonResponse({
-            'value': self.get_setting('STAUTS_BAR_PROGRESS', None)
+            'value': progress.current_progress,
+            'file_name': progress.file_name
         }, status=200)
 
     def import_meta_data(self, request):  # noqa
@@ -196,8 +200,10 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             components = root.find('components')
             inventree_parts = set()
 
-            # reset progress bar
-            self.set_setting('STAUTS_BAR_PROGRESS', 0)
+            # get and reset user specific progress bar status
+            import_progress = ProgressIndicator.objects.get_or_create(user=request.user)[0]
+            import_progress.current_progress = 0
+            import_progress.file_name = file
 
             # we start at 0
             comp_cnt = len(components.findall('comp')) - 1
@@ -205,7 +211,9 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             # Iterate through all child components with the tag 'comp'
             for idx, comp in enumerate(components.findall('comp')):
 
-                self.set_setting('STAUTS_BAR_PROGRESS', int((idx / comp_cnt) * 100))
+                # update user specific progress bar status
+                import_progress.current_progress = int((idx / comp_cnt) * 100)
+                import_progress.save()
 
                 ref = comp.attrib.get('ref', None)
 
@@ -277,6 +285,9 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
                     part = Part.objects.get(id=inventree_id)
                 except Part.DoesNotExist:
                     logger.debug(f'Part ID: {inventree_id} does not belong to an existing part, skipping')
+                    continue
+                except Exception as exp:
+                    logger.debug(f'Part ID: {inventree_id} caused uknown error {exp}')
                     continue
 
                 # find and/or add template and value
