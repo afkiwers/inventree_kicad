@@ -298,6 +298,9 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
                             part = Part.objects.get(name=inventree_part_id)
                             invalid_part = False
 
+                            # map actual id as we now know which part we are referencing
+                            inventree_part_id = part.id
+
                         except Part.DoesNotExist:
                             invalid_part = True
 
