@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from django.contrib import admin
-from .models import SelectedCategory, FootprintParameterMapping
+from .models import SelectedCategory, FootprintParameterMapping, ProgressIndicator
 
 
 class FootprintParameterMappingAdmin(admin.TabularInline):
@@ -20,5 +20,21 @@ class SelectedCategoryAdmin(admin.ModelAdmin):
     autocomplete_fields = ['category']
 
 
-admin.site.register(SelectedCategory, SelectedCategoryAdmin)
+class ProgressIndicatorAdmin(admin.ModelAdmin):
+    """Admin class for the Progress Indicator model"""
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    readonly_fields = [field.name for field in ProgressIndicator._meta.get_fields()]
+
+    list_display = [f.name for f in ProgressIndicator._meta.fields]
+    list_per_page = 25
+
+
 admin.site.register(FootprintParameterMapping)
+admin.site.register(SelectedCategory, SelectedCategoryAdmin)
+admin.site.register(ProgressIndicator, ProgressIndicatorAdmin)

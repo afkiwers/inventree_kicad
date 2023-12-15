@@ -24,6 +24,7 @@ from plugin.base.integration.mixins import SettingsContentMixin
 from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin
 import xml.etree.ElementTree as elementTree
 
+from .models import ProgressIndicator
 from .version import KICAD_PLUGIN_VERSION
 
 
@@ -108,11 +109,17 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'description': _('The part parameter to use for to exclude it from the simulation.'),
             'model': 'part.partparametertemplate',
         },
-        'STAUTS_BAR_PROGRESS': {
-            'name': _('Status bar progress'),
-            'description': _('This is used to display a status bar to the user'),
-            'default': 0,
-            'hidden': True
+        'IMPORT_INVENTREE_ID_IDENTIFIER': {
+            'name': _('Inventree Part ID Identifier'),
+            'description': _('This identifier specifies what key the import tool looks for to get the part ID'),
+            'default': "InvenTree"
+        },
+        'IMPORT_INVENTREE_ID_FALLBACK': {
+            'name': _('Also Match Against Part Name'),
+            'description': _(
+                'When activated, the import tool will use the part name as fallback if the ID does not return an existing part.'),
+            'validator': bool,
+            'default': False,
         },
     }
 
@@ -164,8 +171,11 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
         ]
 
     def get_import_progress(self, request):
+        progress = ProgressIndicator.objects.get_or_create(user=request.user)[0]
+
         return JsonResponse({
-            'value': self.get_setting('STAUTS_BAR_PROGRESS', None)
+            'value': progress.current_progress,
+            'file_name': progress.file_name
         }, status=200)
 
     def import_meta_data(self, request):  # noqa
@@ -196,8 +206,10 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             components = root.find('components')
             inventree_parts = set()
 
-            # reset progress bar
-            self.set_setting('STAUTS_BAR_PROGRESS', 0)
+            # get and reset user specific progress bar status
+            import_progress = ProgressIndicator.objects.get_or_create(user=request.user)[0]
+            import_progress.current_progress = 0
+            import_progress.file_name = file
 
             # we start at 0
             comp_cnt = len(components.findall('comp')) - 1
@@ -205,7 +217,9 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             # Iterate through all child components with the tag 'comp'
             for idx, comp in enumerate(components.findall('comp')):
 
-                self.set_setting('STAUTS_BAR_PROGRESS', int((idx / comp_cnt) * 100))
+                # update user specific progress bar status
+                import_progress.current_progress = int((idx / comp_cnt) * 100)
+                import_progress.save()
 
                 ref = comp.attrib.get('ref', None)
 
@@ -242,7 +256,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
 
                 symbol = f'{lib_name}:{lib_part}'
 
-                inventree_id = None
+                inventree_part_id = None
 
                 # check if there are fields, some parts may not have any like fiducials.
                 fields = comp.find('fields')
@@ -250,33 +264,52 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
                     logger.debug('Missing fields skipping')
                     continue
 
+                # load the inventree ID identifier
+                inventree_id_identifier = self.get_setting('IMPORT_INVENTREE_ID_IDENTIFIER', None)
+
                 for field in fields:
-                    if str(field.attrib.get('name', '')).lower().startswith('inventree'):
-                        inventree_id = field.text
+                    if str(field.attrib.get('name', '')).lower().startswith(inventree_id_identifier.lower()):
+                        inventree_part_id = field.text
                         break
 
                 # Missing inventree_id, cannot continue
-                if not inventree_id:
-                    logger.debug('Missing inventree_id, skipping')
-                    continue
-
-                try:
-                    inventree_id = int(inventree_id)
-                except ValueError:
-                    logger.debug('InvenTree ID is not an integer, skipping')
+                if not inventree_part_id:
+                    logger.debug('Missing part id, skipping')
                     continue
 
                 # Already checked this one
-                if inventree_id in inventree_parts:
+                if inventree_part_id in inventree_parts:
                     continue
 
                 # add to our cache, we use this to not add the same data multiple times
-                inventree_parts.add(inventree_id)
+                inventree_parts.add(inventree_part_id)
 
+                # try load part from database
+                part = None
                 try:
-                    part = Part.objects.get(id=inventree_id)
+                    part = Part.objects.get(id=inventree_part_id)
+
                 except Part.DoesNotExist:
-                    logger.debug(f'Part ID: {inventree_id} does not belong to an existing part, skipping')
+                    invalid_part = True
+
+                    # try also the part name if user wants it
+                    if self.get_setting('IMPORT_INVENTREE_ID_FALLBACK', None):
+                        try:
+                            part = Part.objects.get(name=inventree_part_id)
+                            invalid_part = False
+
+                            # map actual id as we now know which part we are referencing
+                            inventree_part_id = part.id
+
+                        except Part.DoesNotExist:
+                            invalid_part = True
+
+                    if invalid_part:
+                        logger.debug(f'Part ID: {inventree_part_id} does not belong to an existing part, skipping')
+                        continue
+
+                except Exception as exp:
+                    logger.debug(f'Part ID: {inventree_part_id} caused uknown error {exp}')
                     continue
 
                 # find and/or add template and value
@@ -305,7 +338,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
                     try:
                         # inventree is not happy with urls which are too long, so let's make sure that this
                         # doesn't prevent us from importing all the following parts.
-                        PartAttachment.objects.get_or_create(part_id=inventree_id, link=datasheet, comment='datasheet')
+                        PartAttachment.objects.get_or_create(part_id=inventree_part_id, link=datasheet, comment='datasheet')
                     except Exception as exp:
                         logger.debug(exp)
                         pass
