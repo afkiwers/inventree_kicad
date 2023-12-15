@@ -77,7 +77,7 @@ Below is an example config which should help you get started reasonably quickly.
 ```
 ## Add the HTTP library to KiCad
 
-Inside KiCads project manager, navigate to `Preferences -> Manage Symbol Libraries` and click on it. Add a GLobal Library by pressing the folder in the bottom left corner.
+Inside KiCad's project manager, navigate to `Preferences -> Manage Symbol Libraries` and click on it. Add a GLobal Library by pressing the folder in the bottom left corner.
 ![image](/images/add_symbol_lib.png)
 
 When choosing the `.kicad_httplib` file, KiCad will automatically detect that it is a HTTP lib file and only a Nickname needs to be set.
@@ -99,7 +99,7 @@ The Symbol Chooser should open up and display the parts sourced from InvenTree.
 ## Importing Metadata from Previous Projects
 Since KiCad does not offer a way to push information back to the server, InvenTree needs to have all that metadata such as footprints and symbols added manually. This can be very tedious, especially when there are thousands of parts.
 
-This plugin's import tool uses KiCads intermediate file which is created whenever there is a BOM export. This file contains all the project's data which is needed.
+This plugin's import tool uses KiCad's intermediate file which is created whenever there is a BOM export. This file contains all the project's data which is needed.
 
 ![image](/images/kicad_meta_data_import.png) 
 
@@ -111,5 +111,5 @@ This plugin uses the App Mixin to add a custom model to the database to manage t
 
 ### Why does this Plugin need the Url Mixin?
 
-This plugin uses the Url Mixin to expose custom API endpoints which are conform with KiCads REST API requirements.
+This plugin uses the Url Mixin to expose custom API endpoints which are conform with KiCad's REST API requirements.
 
