@@ -103,13 +103,3 @@ This plugin's import tool uses KiCad's intermediate file which is created whenev
 
 ![image](/images/kicad_meta_data_import.png) 
 
-## FAQ
-
-### Why does this Plugin need the App Mixin?
-
-This plugin uses the App Mixin to add a custom model to the database to manage the selected categories. Otherwise, KiCad symbol chooser would be cluttered with every single category (See [Categories](#adding-categories-to-kicad))
-
-### Why does this Plugin need the Url Mixin?
-
-This plugin uses the Url Mixin to expose custom API endpoints which are conform with KiCad's REST API requirements.
-
