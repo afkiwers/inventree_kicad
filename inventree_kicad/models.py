@@ -70,20 +70,26 @@ class SelectedCategory(models.Model):
 class FootprintParameterMapping(models.Model):
     """Mapping entry to map from the footprint parameter value to a KiCad footprint name"""
 
+    class Meta:
+        app_label = "inventree_kicad"
+        verbose_name = "Footprint Mapping"
+        unique_together = ("kicad_category", "parameter_value")
+
     kicad_category = models.ForeignKey(SelectedCategory, on_delete=models.CASCADE)
+
     parameter_value = models.CharField(
         max_length=200,
         verbose_name="Footprint Parameter Value",
     )
+
     kicad_footprint = models.CharField(
         max_length=200,
         verbose_name="KiCad Footprint",
     )
 
-    class Meta:
-        app_label = "inventree_kicad"
-        verbose_name = "Footprint Mapping"
-        unique_together = ("kicad_category", "parameter_value")
+    def __str__(self):
+        """Default name string which is returned when object is called"""
+        return f"{self.parameter_value} -> {self.kicad_footprint}"
 
 
 class ProgressIndicator(models.Model):
