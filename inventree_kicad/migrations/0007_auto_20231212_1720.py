@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('inventree_kicad', '0005_selectedcategory_default_value_parameter_template'),
+        ('inventree_kicad', '0006_progressindicator'),
     ]
 
     operations = [
