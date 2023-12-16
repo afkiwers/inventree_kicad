@@ -66,6 +66,11 @@ Category:
 
 ![image](/images/admin_footprint_mappings.png)
 
+You can also use this in combination with the per category "Footprint
+Parameter Template" override to use a different Parameter to map from.
+
+![image](/images/admin_footprint_parameter_override.png)
+
 ## Creating User Access Tokens
 
 Head back to the admin backend and click on Tokens. Click on "ADD Token" to generate a token dedicated to a particular user. It is important to emphasize that it is highly advisable to create individual tokens for each user, rather than employing a single token for everyone.

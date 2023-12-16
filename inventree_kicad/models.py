@@ -59,7 +59,7 @@ class SelectedCategory(models.Model):
         blank=True,
         null=True,
         verbose_name=_('Footprint Parameter Template'),
-        help_text=_('Footprint parameter template for this category, will use KICAD_FOOTPRINT_PARAMETER setting if not set'),
+        help_text=_('Footprint parameter template for this category. Overrides the KICAD_FOOTPRINT_PARAMETER setting for this category.'),
     )
 
     def __str__(self):
