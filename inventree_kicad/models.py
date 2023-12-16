@@ -52,9 +52,44 @@ class SelectedCategory(models.Model):
         help_text=_('Default value parameter template for this category, if not specified for an individual part'),
     )
 
+    footprint_parameter_template = models.ForeignKey(
+        PartParameterTemplate,
+        on_delete=models.SET_NULL,
+        related_name="footprint_kicad_categories",
+        blank=True,
+        null=True,
+        verbose_name=_('Footprint Parameter Template'),
+        help_text=_('Footprint parameter template for this category. Overrides the KICAD_FOOTPRINT_PARAMETER setting for this category.'),
+    )
+
     def __str__(self):
         """Default name string which is returned when object is called"""
         return f'{self.category.pathstring}'
+
+
+class FootprintParameterMapping(models.Model):
+    """Mapping entry to map from the footprint parameter value to a KiCad footprint name"""
+
+    class Meta:
+        app_label = "inventree_kicad"
+        verbose_name = "Footprint Mapping"
+        unique_together = ("kicad_category", "parameter_value")
+
+    kicad_category = models.ForeignKey(SelectedCategory, on_delete=models.CASCADE)
+
+    parameter_value = models.CharField(
+        max_length=200,
+        verbose_name="Footprint Parameter Value",
+    )
+
+    kicad_footprint = models.CharField(
+        max_length=200,
+        verbose_name="KiCad Footprint",
+    )
+
+    def __str__(self):
+        """Default name string which is returned when object is called"""
+        return f"{self.parameter_value} -> {self.kicad_footprint}"
 
 
 class ProgressIndicator(models.Model):

@@ -7,6 +7,8 @@ from InvenTree.helpers import str2bool
 from InvenTree.helpers_model import construct_absolute_url
 from part.models import Part, PartCategory, PartParameter
 
+from .models import SelectedCategory, FootprintParameterMapping
+
 
 class KicadDetailedPartSerializer(serializers.ModelSerializer):
     """Custom model serializer for a single KiCad part instance"""
@@ -57,8 +59,6 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         # Prevent duplicate lookups
         if hasattr(self, 'kicad_category'):
             return self.kicad_category
-
-        from .models import SelectedCategory
 
         # If the selcted part does not have a category, return None
         if not part.category:
@@ -156,17 +156,30 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         """Return the footprint associated with this part.
 
         - First, check if the part has a footprint assigned (via parameter)
+        - Then, check if there is a valid footprint mapping
         - Otherwise, fallback to the default footprint for the KiCad Category
         """
 
         footprint = ""
+        footprint_mappings = None
+        template_id = None
 
         if kicad_category := self.get_kicad_category(part):
             footprint = kicad_category.default_footprint
+            footprint_mappings = FootprintParameterMapping.objects.filter(
+                kicad_category=kicad_category,
+            )
+            template_id = kicad_category.footprint_parameter_template
 
-        template_id = self.plugin.get_setting('KICAD_FOOTPRINT_PARAMETER', None)
+        if not template_id:
+            template_id = self.plugin.get_setting('KICAD_FOOTPRINT_PARAMETER', None)
 
         footprint = self.get_parameter_value(part, template_id, backup_value=footprint)
+
+        if footprint_mappings:
+            footprint_mapping = footprint_mappings.filter(parameter_value=footprint).first()
+            if footprint_mapping:
+                footprint = footprint_mapping.kicad_footprint
 
         return str(footprint)
 
