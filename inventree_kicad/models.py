@@ -89,7 +89,7 @@ class FootprintParameterMapping(models.Model):
 
     def __str__(self):
         """Default name string which is returned when object is called"""
-        return f"{self.parameter_value} -> {self.kicad_footprint}"
+        return f"{self.kicad_category}: {self.parameter_value} -> {self.kicad_footprint}"
 
 
 class ProgressIndicator(models.Model):
