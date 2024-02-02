@@ -73,6 +73,13 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'validator': bool,
             'default': False,
         },
+        'IMPORT_INVENTREE_ID_FALLBACK': {
+            'name': _('Also Match Against Part Name'),
+            'description': _(
+                'When activated, the import tool will use the part name as fallback if the ID does not return an existing part.'),
+            'validator': bool,
+            'default': False,
+        },
         'KICAD_SYMBOL_PARAMETER': {
             'name': _('Symbol Parameter'),
             'description': _('The part parameter to use for the symbol name.'),
@@ -114,12 +121,10 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'description': _('This identifier specifies what key the import tool looks for to get the part ID'),
             'default': "InvenTree"
         },
-        'IMPORT_INVENTREE_ID_FALLBACK': {
-            'name': _('Also Match Against Part Name'),
-            'description': _(
-                'When activated, the import tool will use the part name as fallback if the ID does not return an existing part.'),
-            'validator': bool,
-            'default': False,
+        'DEFAULT_FOR_MISSING_SYMBOL': {
+            'name': _('Backup KiCad Symbol'),
+            'description': _('This backup symbol will be used if none has been defined'),
+            'default': ""
         },
     }
 

@@ -132,11 +132,14 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         symbol = self.get_parameter_value(part, template_id, backup_value=symbol)
 
+        if not symbol:
+            symbol = template_id = self.plugin.get_setting('DEFAULT_FOR_MISSING_SYMBOL', "")
+
         # KiCad does not like colons in their symbol names.
         # Check if there is more than one colon present, if so rebuild string and honour only the first
         # colon. Replace the other colons with underscores.
         cnt = symbol.count(':')
-        if cnt != 1:
+        if cnt != 1 and len(symbol) != 0:
             spilt_str = symbol.split(':')
             tmp_str = ""
 
