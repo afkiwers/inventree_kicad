@@ -140,8 +140,8 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         # colon. Replace the other colons with underscores.
         cnt = symbol.count(':')
         if cnt != 1 and len(symbol) != 0:
-
             spilt_str = symbol.split(':')
+            tmp_str = ""
 
             for iter, s in enumerate(spilt_str):
                 tmp_str += s
