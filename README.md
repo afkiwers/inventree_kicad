@@ -56,24 +56,19 @@ The plugin allows you to set default values when the child part lacks specific d
 
 ![image](/images/admin_add_category.png)
 
-#### Using Footprint Parameter Mappings
+#### Utilizing Footprint Parameter Mapping
 
-If you already have Footprint/Package Type parameters on your parts and
-don't want to specify a separate KiCad Footprint Parameter for them, you
-can use the Footprint Parameter Mapping functionality to map from it to
-KiCad Footprint names. Simply add the desired mappings to the KiCad
-Category:
+If you have existing Footprint/Package Type parameters assigned to your components and prefer not to define a separate KiCad Footprint Parameter for them, you can leverage the Footprint Parameter Mapping functionality to establish a connection to KiCad Footprint names. Simply incorporate the desired mappings into the KiCad category:
 
 ![image](/images/admin_footprint_mappings.png)
 
-You can also use this in combination with the per category "Footprint
-Parameter Template" override to use a different Parameter to map from.
+Additionally, you can combine this with the per-category "Footprint Parameter Template" override to utilize a different parameter for mapping purposes.
 
 ![image](/images/admin_footprint_parameter_override.png)
 
 ## Creating User Access Tokens
 
-Head back to the admin backend and click on Tokens. Click on "ADD Token" to generate a token dedicated to a particular user. It is important to emphasize that it is highly advisable to create individual tokens for each user, rather than employing a single token for everyone.
+Return to the administrative backend, navigate to the USER model, and access API Tokens. Select "ADD API Token" to generate a token designated for a specific user. It's crucial to highlight the importance of creating separate tokens for each user, rather than using a universal token for everyone.
 
 ![image](/images/admin_tokens.png)
 
