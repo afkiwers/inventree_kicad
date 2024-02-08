@@ -10,7 +10,6 @@ import datetime
 
 from django.core.validators import URLValidator
 
-from django.conf.urls import url
 from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.urls import include, re_path
@@ -168,8 +167,8 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
                 re_path('^.*$', viewsets.Index.as_view(), name='kicad-index'),
             ])),
 
-            url(r'upload(?:\.(?P<format>json))?$', self.import_meta_data, name='meta_data_upload'),
-            url(r'progress_bar_status', self.get_import_progress, name='get_import_progress'),
+            re_path(r'upload(?:\.(?P<format>json))?$', self.import_meta_data, name='meta_data_upload'),
+            re_path(r'progress_bar_status', self.get_import_progress, name='get_import_progress'),
 
             # Anything else, redirect to our top-level v1 page
             re_path('^.*$', viewsets.Index.as_view(), name='kicad-index'),
