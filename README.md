@@ -12,16 +12,16 @@ There are several methods available for installing this plugin. To gain a compre
 
 Prior to plugin installation, ensure that you've activated both **URL Integration** and **App Integration**. You can accomplish this by going to Settings → Plugin Settings → Plugins. Additionally, if you're operating within a Docker environment, be sure to enable **Check plugins on startup** as well.
 
-![image](/images/plugin_general_settings.png)
+![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/plugin_general_settings.png)
 
 ### Through GitHub
 
 Navigate to the **Plugin Settings** and click on the Install Plugin button. This will trigger a new window to appear, prompting you to enter the following information:
 
 - Package Name: inventree-kicad-plugin
-- Source URL: git+<https://github.com/afkiwers/inventree-kicad-plugin>
+- Source URL: git+<https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/inventree-kicad-plugin>
 
-![image](/images/install_plugin_via_github_url.png)
+![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/install_plugin_via_github_url.png)
 
 ### Through PiP
 
@@ -29,7 +29,7 @@ The plugin can be found here: [inventree-kicad-plugin](https://pypi.org/project/
 
 - Package Name: inventree-kicad-plugin
 
-![image](/images/pip_install.png)
+![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/pip_install.png)
 
 **IMPORTANT**: Remember to restart your server and run the migrate command to implement the model changes required for this plugin. Failure to do so may result in the plugin encountering issues and not functioning correctly.
 
@@ -37,40 +37,40 @@ The plugin can be found here: [inventree-kicad-plugin](https://pypi.org/project/
 
 After installing the plugin, head over to the Plugin Settings and activate it. Look for **KiCadLibraryPlugin** in the list of available plugins. Once activated, you'll be able to open the plugin and proceed with the setup process.
 
-![image](/images/admin_add_change_categories.png)
+![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/admin_add_change_categories.png)
 
 ## Adding Categories to KiCad
 
 Navigate to the admin backend, and scroll down until you find the **INVENTREE_KICAD** section. Within this section, click on **KiCad Categories**.
 If the section is not visible, ensure you've enabled the "Enable URL integration" and "Enable app integration" options in the Plugin Settings and run a database migration.
 
-![image](/images/admin_model.png)
+![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/admin_model.png)
 
 Once opened the "KiCad Categories" model, you'll have the option to add new categories which, once added, will be visible in KiCad's Symbol Chooser dialog.
 
-![image](/images/admin_add_change_categories.png)
+![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/admin_add_change_categories.png)
 
 #### Default Settings for Categories
 
 The plugin allows you to set default values when the child part lacks specific details regarding the KiCad symbol, footprint, or reference. This feature is particularly useful when dealing with components such as resistors or capacitors, as they often share the same symbols, reducing the need for repetitive data entry.
 
-![image](/images/admin_add_category.png)
+![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/admin_add_category.png)
 
 #### Utilizing Footprint Parameter Mapping
 
 If you have existing Footprint/Package Type parameters assigned to your components and prefer not to define a separate KiCad Footprint Parameter for them, you can leverage the Footprint Parameter Mapping functionality to establish a connection to KiCad Footprint names. Simply incorporate the desired mappings into the KiCad category:
 
-![image](/images/admin_footprint_mappings.png)
+![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/admin_footprint_mappings.png)
 
 Additionally, you can combine this with the per-category "Footprint Parameter Template" override to utilize a different parameter for mapping purposes.
 
-![image](/images/admin_footprint_parameter_override.png)
+![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/admin_footprint_parameter_override.png)
 
 ## Creating User Access Tokens
 
 Return to the administrative backend, navigate to the USER model, and access API Tokens. Select "ADD API Token" to generate a token designated for a specific user. It's crucial to highlight the importance of creating separate tokens for each user, rather than using a universal token for everyone.
 
-![image](/images/admin_tokens.png)
+![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/admin_tokens.png)
 
 ## KiCad Configuration files
 
@@ -97,7 +97,7 @@ Below is an example config which should help you get started reasonably quickly.
 ## Add the HTTP library to KiCad
 
 Inside KiCad's project manager, navigate to `Preferences -> Manage Symbol Libraries` and click on it. Add a GLobal Library by pressing the folder in the bottom left corner.
-![image](/images/add_symbol_lib.png)
+![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/add_symbol_lib.png)
 
 When choosing the `.kicad_httplib` file, KiCad will automatically detect that it is a HTTP lib file and only a Nickname needs to be set.
 
@@ -109,11 +109,11 @@ Once everything has been configured properly, KiCad should be able to display al
 
 Inside the schematic, one can either use the shortcut and press **A** or navigate to the ribbon at the top and press `Place -> Add Symbol`.
 
-![image](/images/eeschema_open_chooser.png)
+![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/eeschema_open_chooser.png)
 
 The Symbol Chooser should open up and display the parts sourced from InvenTree.
 
-![image](/images/symbol_chooser.png)
+![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/symbol_chooser.png)
 
 ## Importing Metadata from Previous Projects
 
@@ -121,4 +121,4 @@ Since KiCad does not offer a way to push information back to the server, InvenTr
 
 This plugin's import tool uses KiCad's intermediate file which is created whenever there is a BOM export. This file contains all the project's data which is needed.
 
-![image](/images/kicad_meta_data_import.png)
+![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/kicad_meta_data_import.png)
