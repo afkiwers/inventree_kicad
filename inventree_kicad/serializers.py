@@ -3,7 +3,6 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.reverse import reverse_lazy
 
-from InvenTree.helpers import str2bool
 from InvenTree.helpers_model import construct_absolute_url
 from part.models import Part, PartCategory, PartParameter
 
