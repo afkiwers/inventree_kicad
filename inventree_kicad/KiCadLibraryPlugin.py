@@ -57,26 +57,16 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'validator': bool,
             'default': True,
         },
+        'DEFAULT_FOR_MISSING_SYMBOL': {
+            'name': _('Backup KiCad Symbol'),
+            'description': _('This backup symbol will be used if none has been defined'),
+            'default': ""
+        },
         'KICAD_INCLUDE_IPN': {
             'name': _('Include IPN'),
             'description': _('When activated, the IPN is included in the KiCad fields for a part'),
             'choices': [('0', 'Do not Include'), ('False', 'Include but Hide in Schematic'), ('True', 'Include and Show in Schematic')],
             'default': '0',
-        },
-        'KICAD_META_DATA_IMPORT_ADD_DATASHEET': {
-            'name': _('Add datasheet if URL is valid'),
-            'description': _(
-                'When activated, the plugin will add the datasheet URL (comment will be \'datasheet\') to the '
-                'attachments.'),
-            'validator': bool,
-            'default': False,
-        },
-        'IMPORT_INVENTREE_ID_FALLBACK': {
-            'name': _('Also Match Against Part Name'),
-            'description': _(
-                'When activated, the import tool will use the part name as fallback if the ID does not return an existing part.'),
-            'validator': bool,
-            'default': False,
         },
         'KICAD_SYMBOL_PARAMETER': {
             'name': _('Symbol Parameter'),
@@ -114,15 +104,25 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'description': _('The part parameter to use for to exclude it from the simulation.'),
             'model': 'part.partparametertemplate',
         },
+        'KICAD_META_DATA_IMPORT_ADD_DATASHEET': {
+            'name': _('[KiCad Metadata Import] Add datasheet if URL is valid'),
+            'description': _(
+                'When activated, the plugin will add the datasheet URL (comment will be \'datasheet\') to the '
+                'attachments.'),
+            'validator': bool,
+            'default': False,
+        },
+        'IMPORT_INVENTREE_ID_FALLBACK': {
+            'name': _('[KiCad Metadata Import] Match Against Part Name'),
+            'description': _(
+                'When activated, the import tool will use the part name as fallback if the ID does not return an existing part.'),
+            'validator': bool,
+            'default': False,
+        },
         'IMPORT_INVENTREE_ID_IDENTIFIER': {
-            'name': _('Inventree Part ID Identifier'),
+            'name': _('[KiCad Metadata Import] Inventree Part ID Identifier'),
             'description': _('This identifier specifies what key the import tool looks for to get the part ID'),
             'default': "InvenTree"
-        },
-        'DEFAULT_FOR_MISSING_SYMBOL': {
-            'name': _('Backup KiCad Symbol'),
-            'description': _('This backup symbol will be used if none has been defined'),
-            'default': ""
         },
     }
 
