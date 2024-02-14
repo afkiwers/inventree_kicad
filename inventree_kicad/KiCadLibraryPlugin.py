@@ -59,9 +59,8 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
         },
         'KICAD_INCLUDE_IPN': {
             'name': _('Include IPN'),
-             'description': _(
-                'When activated, the IPN is included in the KiCad fields for a part'),
-            'choices': [('0', 'Do not Include'), ('False', 'Include but Hide in Schematic'),  ('True', 'Include and Show in Schematic')],
+             'description': _('When activated, the IPN is included in the KiCad fields for a part'),
+            'choices': [('0', 'Do not Include'), ('False', 'Include but Hide in Schematic'), ('True', 'Include and Show in Schematic')],
             'default': '0',
         },
         'KICAD_META_DATA_IMPORT_ADD_DATASHEET': {
