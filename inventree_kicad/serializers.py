@@ -276,10 +276,10 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             }
         }
 
-        if str2bool(self.plugin.get_setting('KICAD_INCLUDE_IPN', False)):
+        if self.plugin.get_setting('KICAD_INCLUDE_IPN', '0') != '0':
             fields['IPN'] = {
                 'value': f'{part.IPN}',
-                'visible': 'False'
+                'visible': self.plugin.get_setting('KICAD_INCLUDE_IPN', 'False')
             }
 
         for parameter in part.parameters.all():
