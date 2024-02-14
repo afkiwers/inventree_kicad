@@ -35,9 +35,15 @@ The plugin can be found here: [inventree-kicad-plugin](https://pypi.org/project/
 
 ## Configure Plugin Settings
 
-After installing the plugin, head over to the Plugin Settings and activate it. Look for **KiCadLibraryPlugin** in the list of available plugins. Once activated, you'll be able to open the plugin and proceed with the setup process.
+After installing the plugin, head over to the Plugin Settings and activate it. Look for **KiCadLibraryPlugin** in the list of available plugins. 
 
-![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/admin_add_change_categories.png)
+![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/plugin_settings.png)
+
+
+Once activated, you'll see a new plugin **KiCad Library Endpoint** on the left hand side. Click on it to open the plugin and proceed with the setup process.
+
+![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/new_plugin.png)
+
 
 ## Adding Categories to KiCad
 
