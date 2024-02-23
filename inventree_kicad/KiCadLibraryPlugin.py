@@ -119,6 +119,13 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'validator': bool,
             'default': False,
         },
+        'IMPORT_INVENTREE_OVERRIDE_PARAS': {
+            'name': _('[KiCad Metadata Import] Override Parmeters'),
+            'description': _(
+                'When activated, the import tool will override existing KiCad parameters.'),
+            'validator': bool,
+            'default': False,
+        },
         'IMPORT_INVENTREE_ID_IDENTIFIER': {
             'name': _('[KiCad Metadata Import] Inventree Part ID Identifier'),
             'description': _('This identifier specifies what key the import tool looks for to get the part ID'),
@@ -315,21 +322,19 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
                     logger.debug(f'Part ID: {inventree_part_id} caused uknown error {exp}')
                     continue
 
-                # find and/or add template and value
-                template = PartParameterTemplate.objects.get(id=kicad_reference_param_id)
-                parameter = PartParameter.objects.get_or_create(part=part, template=template)
-                parameter[0].data = ref
-                parameter[0].save()
+                t_ids = []
+                t_ids.append(kicad_reference_param_id)
+                t_ids.append(kicad_footprint_param_id)
+                t_ids.append(kicad_symbol_param_id)
 
-                template = PartParameterTemplate.objects.get(id=kicad_footprint_param_id)
-                parameter = PartParameter.objects.get_or_create(part=part, template=template)
-                parameter[0].data = footprint
-                parameter[0].save()
-
-                template = PartParameterTemplate.objects.get(id=kicad_symbol_param_id)
-                parameter = PartParameter.objects.get_or_create(part=part, template=template)
-                parameter[0].data = symbol
-                parameter[0].save()
+                for t_id in t_ids:
+                    # find and/or add template and value
+                    template = PartParameterTemplate.objects.get(id=t_id)
+                    parameter = PartParameter.objects.get_or_create(part=part, template=template)
+                    # Don't override
+                    if parameter[1] or self.get_setting('IMPORT_INVENTREE_OVERRIDE_PARAS', None):
+                        parameter[0].data = ref
+                        parameter[0].save()
 
                 if datasheet and str2bool(self.get_setting('KICAD_META_DATA_IMPORT_ADD_DATASHEET', False)):
                     try:
@@ -338,10 +343,13 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
                         logger.debug(f'URL is invalid: {e}')
                         continue
 
+                    # only add a datasheet if there is not already one which is already called out to be one.
                     try:
                         # inventree is not happy with urls which are too long, so let's make sure that this
                         # doesn't prevent us from importing all the following parts.
-                        PartAttachment.objects.get_or_create(part_id=inventree_part_id, link=datasheet, comment='datasheet')
+                        part = PartAttachment.objects.filter(part_id=inventree_part_id, comment='Datasheet')
+                        if not part:
+                            part = PartAttachment.objects.create(part_id=inventree_part_id, link=datasheet, comment='Datasheet')
                     except Exception as exp:
                         logger.debug(exp)
                         pass
