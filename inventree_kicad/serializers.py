@@ -410,19 +410,19 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
 
     id = serializers.CharField(source='pk', read_only=True)
 
-    description = serializers.SerializerMethodField('get_description')
+    name = serializers.SerializerMethodField('get_name')
 
-    def get_description(self, part):
-        """Custom description function.
+    def get_name(self, part):
+        """Custom name function.
 
         This will allow users to display stock information
         if they enable it.
         """
 
         if str2bool(self.plugin.get_setting('KICAD_ENABLE_STOCK_COUNT', False)):
-            return f'{part.description} (Stock Available: {part.get_stock_count()})'
+            return f'{part.name} (Stock: {part.get_stock_count()})'
 
-        return part.description
+        return part.name
 
 
 class KicadCategorySerializer(serializers.ModelSerializer):
