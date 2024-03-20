@@ -420,7 +420,7 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
         """
 
         if str2bool(self.plugin.get_setting('KICAD_ENABLE_STOCK_COUNT', False)):
-            return f'{part.name} (In Stock: {part.get_stock_count()})'
+            return f'{part.name} >> In Stock: {part.get_stock_count()}'
 
         return part.name
 
