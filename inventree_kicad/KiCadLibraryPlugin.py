@@ -57,6 +57,13 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'validator': bool,
             'default': True,
         },
+        'KICAD_ENABLE_STOCK_COUNT': {
+            'name': _('Display Available Stock'),
+            'description': _(
+                'When activated, the plugin will provide stock information which will be displayed as part of the top level description in KiCad'),
+            'validator': bool,
+            'default': True,
+        },
         'DEFAULT_FOR_MISSING_SYMBOL': {
             'name': _('Backup KiCad Symbol'),
             'description': _('This backup symbol will be used if none has been defined'),
