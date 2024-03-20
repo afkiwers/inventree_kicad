@@ -334,13 +334,18 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
                 t_ids.append(kicad_footprint_param_id)
                 t_ids.append(kicad_symbol_param_id)
 
-                for t_id in t_ids:
+                t_id_values = []
+                t_id_values .append(ref)
+                t_id_values .append(footprint)
+                t_id_values .append(symbol)
+
+                for idx, t_id in enumerate(t_ids):
                     # find and/or add template and value
                     template = PartParameterTemplate.objects.get(id=t_id)
                     parameter = PartParameter.objects.get_or_create(part=part, template=template)
                     # Don't override
                     if parameter[1] or self.get_setting('IMPORT_INVENTREE_OVERRIDE_PARAS', None):
-                        parameter[0].data = ref
+                        parameter[0].data = t_id_values[idx]
                         parameter[0].save()
 
                 if datasheet and str2bool(self.get_setting('KICAD_META_DATA_IMPORT_ADD_DATASHEET', False)):
