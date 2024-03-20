@@ -62,7 +62,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'description': _(
                 'When activated, the plugin will provide stock information which will be displayed as part of the top level description in KiCad'),
             'validator': bool,
-            'default': True,
+            'default': False,
         },
         'DEFAULT_FOR_MISSING_SYMBOL': {
             'name': _('Backup KiCad Symbol'),
