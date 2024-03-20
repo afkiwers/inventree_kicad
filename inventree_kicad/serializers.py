@@ -5,6 +5,7 @@ from rest_framework.reverse import reverse_lazy
 
 from InvenTree.helpers_model import construct_absolute_url
 from part.models import Part, PartCategory, PartParameter
+from InvenTree.helpers import str2bool
 
 from .models import SelectedCategory, FootprintParameterMapping
 
@@ -409,6 +410,20 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
 
     id = serializers.CharField(source='pk', read_only=True)
 
+    description = serializers.SerializerMethodField('get_description')
+
+    def get_description(self, part):
+        """Custom description function.
+
+        This will allow users to display stock information
+        if they enable it.
+        """
+
+        if str2bool(self.plugin.get_setting('KICAD_ENABLE_STOCK_COUNT', False)):
+            return f'{part.description} (Stock Available: {part.get_stock_count()})'
+
+        return part.description
+
 
 class KicadCategorySerializer(serializers.ModelSerializer):
     """Custom model serializer for a single KiCad category instance"""
@@ -426,10 +441,4 @@ class KicadCategorySerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField('get_name')
 
     def get_name(self, category):
-        """Return the whether or not the part should be excluded from the sim.
-
-        If the part exclusion has been specified via parameter, return that.
-        Otherwise, simply return false
-        """
-
         return category.pathstring

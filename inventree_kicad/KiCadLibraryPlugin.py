@@ -57,6 +57,13 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'validator': bool,
             'default': True,
         },
+        'KICAD_ENABLE_STOCK_COUNT': {
+            'name': _('Display Available Stock'),
+            'description': _(
+                'When activated, the plugin will provide stock information which will be displayed as part of the top level description in KiCad'),
+            'validator': bool,
+            'default': True,
+        },
         'DEFAULT_FOR_MISSING_SYMBOL': {
             'name': _('Backup KiCad Symbol'),
             'description': _('This backup symbol will be used if none has been defined'),
@@ -116,6 +123,13 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'name': _('[KiCad Metadata Import] Match Against Part Name'),
             'description': _(
                 'When activated, the import tool will use the part name as fallback if the ID does not return an existing part.'),
+            'validator': bool,
+            'default': False,
+        },
+        'IMPORT_INVENTREE_OVERRIDE_PARAS': {
+            'name': _('[KiCad Metadata Import] Override Parmeters'),
+            'description': _(
+                'When activated, the import tool will override existing KiCad parameters.'),
             'validator': bool,
             'default': False,
         },
@@ -315,21 +329,24 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
                     logger.debug(f'Part ID: {inventree_part_id} caused uknown error {exp}')
                     continue
 
-                # find and/or add template and value
-                template = PartParameterTemplate.objects.get(id=kicad_reference_param_id)
-                parameter = PartParameter.objects.get_or_create(part=part, template=template)
-                parameter[0].data = ref
-                parameter[0].save()
+                t_ids = []
+                t_ids.append(kicad_reference_param_id)
+                t_ids.append(kicad_footprint_param_id)
+                t_ids.append(kicad_symbol_param_id)
 
-                template = PartParameterTemplate.objects.get(id=kicad_footprint_param_id)
-                parameter = PartParameter.objects.get_or_create(part=part, template=template)
-                parameter[0].data = footprint
-                parameter[0].save()
+                t_id_values = []
+                t_id_values .append(ref)
+                t_id_values .append(footprint)
+                t_id_values .append(symbol)
 
-                template = PartParameterTemplate.objects.get(id=kicad_symbol_param_id)
-                parameter = PartParameter.objects.get_or_create(part=part, template=template)
-                parameter[0].data = symbol
-                parameter[0].save()
+                for idx, t_id in enumerate(t_ids):
+                    # find and/or add template and value
+                    template = PartParameterTemplate.objects.get(id=t_id)
+                    parameter = PartParameter.objects.get_or_create(part=part, template=template)
+                    # Don't override
+                    if parameter[1] or self.get_setting('IMPORT_INVENTREE_OVERRIDE_PARAS', None):
+                        parameter[0].data = t_id_values[idx]
+                        parameter[0].save()
 
                 if datasheet and str2bool(self.get_setting('KICAD_META_DATA_IMPORT_ADD_DATASHEET', False)):
                     try:
@@ -338,10 +355,13 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
                         logger.debug(f'URL is invalid: {e}')
                         continue
 
+                    # only add a datasheet if there is not already one which is already called out to be one.
                     try:
                         # inventree is not happy with urls which are too long, so let's make sure that this
                         # doesn't prevent us from importing all the following parts.
-                        PartAttachment.objects.get_or_create(part_id=inventree_part_id, link=datasheet, comment='datasheet')
+                        part = PartAttachment.objects.filter(part_id=inventree_part_id, comment='Datasheet')
+                        if not part:
+                            part = PartAttachment.objects.create(part_id=inventree_part_id, link=datasheet, comment='Datasheet')
                     except Exception as exp:
                         logger.debug(exp)
                         pass
