@@ -5,7 +5,7 @@ from rest_framework.reverse import reverse_lazy
 
 from InvenTree.helpers_model import construct_absolute_url
 from part.models import Part, PartCategory, PartParameter
-from InvenTree.helpers import str2bool
+from InvenTree.helpers import str2bool, decimal2string
 
 from .models import SelectedCategory, FootprintParameterMapping
 
@@ -420,7 +420,7 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
         """
 
         if str2bool(self.plugin.get_setting('KICAD_ENABLE_STOCK_COUNT', False)):
-            return f'{part.name} >> In Stock: {part.get_stock_count()}'
+            return f'{part.name} {self.plugin.get_setting("KICAD_ENABLE_STOCK_COUNT_FORMAT", "(%)") % (decimal2string(part.get_stock_count()))}'
 
         return part.name
 
