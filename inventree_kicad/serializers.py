@@ -421,7 +421,6 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
 
         if str2bool(self.plugin.get_setting('KICAD_ENABLE_STOCK_COUNT', False)):
             return self.plugin.get_setting("KICAD_ENABLE_STOCK_COUNT_FORMAT", "[Stock: {1}] >> {0}").format(part.description, decimal2string(part.get_stock_count()))
-            # return f'{part.description} {self.plugin.get_setting("KICAD_ENABLE_STOCK_COUNT_FORMAT", "(%)") % (decimal2string(part.get_stock_count()))}'
 
         return part.name
 
