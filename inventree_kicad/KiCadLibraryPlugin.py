@@ -66,8 +66,8 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
         },
         'KICAD_ENABLE_STOCK_COUNT_FORMAT': {
             'name': _('Display Format for Stock Count'),
-            'description': _('This will be displayed after the part\'s name in KiCad (left column).'),
-            'default': ">> In Stock: %s"
+            'description': _('This will be displayed after the part\'s description in KiCad (right column). Note: {1} contains the Stock information, {0} the description of the part.'),
+            'default': "[Stock: {1}] >> {0}"
         },
         'DEFAULT_FOR_MISSING_SYMBOL': {
             'name': _('Backup KiCad Symbol'),
