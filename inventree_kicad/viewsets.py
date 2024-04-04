@@ -4,6 +4,9 @@ from InvenTree.helpers import str2bool
 from part.models import PartCategory, Part
 
 
+from inventree_kicad import serializers
+
+
 class Index(views.APIView):
     """Index view which provides a list of available endpoints"""
 
@@ -29,9 +32,7 @@ class Index(views.APIView):
 class CategoryList(generics.ListAPIView):
     """List of available KiCad categories"""
 
-    from .serializers import KicadCategorySerializer
-
-    serializer_class = KicadCategorySerializer
+    serializer_class = serializers.KicadCategorySerializer
 
     def get_queryset(self):
         """Return only PartCategory objects which are mapped to a SelectedCategory"""
@@ -46,9 +47,7 @@ class CategoryList(generics.ListAPIView):
 class PartsPreviewList(generics.ListAPIView):
     """Preview list for all parts in a given category"""
 
-    from .serializers import KicadPreviewPartSerializer
-
-    serializer_class = KicadPreviewPartSerializer
+    serializer_class = serializers.KicadPreviewPartSerializer
 
     def get_serializer(self, *args, **kwargs):
         """Add the parent plugin instance to the serializer contenxt"""
@@ -63,7 +62,6 @@ class PartsPreviewList(generics.ListAPIView):
         We check if the plugin setting KICAD_ENABLE_SUBCATEGORY is enabled,
         to determine if sub-category parts should be returned also
         """
-        from .serializers import KicadPreviewPartSerializer
 
         category_id = self.kwargs.get('id', None)
 
@@ -84,7 +82,7 @@ class PartsPreviewList(generics.ListAPIView):
             else:
                 queryset = queryset.filter(category=category)
 
-        queryset = KicadPreviewPartSerializer.annotate_queryset(queryset)
+        queryset = serializers.KicadPreviewPartSerializer.annotate_queryset(queryset)
 
         return queryset
 
@@ -96,9 +94,7 @@ class PartDetail(generics.RetrieveAPIView):
     The custom plugin serializer formats the data into a KiCad compatible format.
     """
 
-    from .serializers import KicadDetailedPartSerializer
-
-    serializer_class = KicadDetailedPartSerializer
+    serializer_class = serializers.KicadDetailedPartSerializer
     queryset = Part.objects.all()
 
     def get_queryset(self):
