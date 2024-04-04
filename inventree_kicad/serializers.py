@@ -3,7 +3,9 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.reverse import reverse_lazy
 
+
 from InvenTree.helpers_model import construct_absolute_url
+from part.filters import annotate_total_stock
 from part.models import Part, PartCategory, PartParameter
 from InvenTree.helpers import str2bool, decimal2string
 
@@ -427,13 +429,26 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
 
         description = part.description
 
+        # In-stock quantity should be annotated to the queryset
+        stock_count = getattr(part, 'in_stock', 0)
+
         if self.enable_stock_count:
             try:
-                description = self.stock_count_format.format(part.description, decimal2string(part.get_stock_count()))
+                description = self.stock_count_format.format(part.description, decimal2string(stock_count))
             except Exception:
                 pass
 
         return description
+
+    @staticmethod
+    def annotate_queryset(queryset):
+        """Add extra annotations to the queryset."""
+
+        queryset = queryset.annotate(
+            in_stock=annotate_total_stock(),
+        )
+
+        return queryset
 
 
 class KicadCategorySerializer(serializers.ModelSerializer):

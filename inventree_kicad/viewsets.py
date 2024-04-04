@@ -63,6 +63,7 @@ class PartsPreviewList(generics.ListAPIView):
         We check if the plugin setting KICAD_ENABLE_SUBCATEGORY is enabled,
         to determine if sub-category parts should be returned also
         """
+        from .serializers import KicadPreviewPartSerializer
 
         category_id = self.kwargs.get('id', None)
 
@@ -71,17 +72,21 @@ class PartsPreviewList(generics.ListAPIView):
 
         cascade = str2bool(plugin.get_setting('KICAD_ENABLE_SUBCATEGORY', False))
 
-        # Get the part category
-        try:
-            category = PartCategory.objects.get(id=category_id)
-        except PartCategory.DoesNotExist:
-            return Part.objects.all()
-        
-        if cascade:
-            return Part.objects.filter(category__in=category.get_descendants(include_self=True))
-        else:
-            return Part.objects.filter(category=category)
+        queryset = Part.objects.all()
 
+        category = PartCategory.objects.filter(id=category_id).first()
+
+        if category is not None:
+            if cascade:
+                queryset = queryset.filter(
+                    category__in=category.get_descendants(include_self=True)
+                )
+            else:
+                queryset = queryset.filter(category=category)
+
+        queryset = KicadPreviewPartSerializer.annotate_queryset(queryset)
+
+        return queryset
 
 class PartDetail(generics.RetrieveAPIView):
     """Detailed information endpoint for a single part instance.
