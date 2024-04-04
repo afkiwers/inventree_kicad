@@ -1,3 +1,5 @@
+import logging
+
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
@@ -11,6 +13,8 @@ from InvenTree.helpers import str2bool, decimal2string
 
 from .models import SelectedCategory, FootprintParameterMapping
 
+
+logger = logging.getLogger('inventree')
 
 class KicadDetailedPartSerializer(serializers.ModelSerializer):
     """Custom model serializer for a single KiCad part instance"""
@@ -435,8 +439,8 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
         if self.enable_stock_count:
             try:
                 description = self.stock_count_format.format(part.description, decimal2string(stock_count))
-            except Exception:
-                pass
+            except Exception as e:
+                logger.exception("Failed to format stock count: %s", e)
 
         return description
 
