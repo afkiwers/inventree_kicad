@@ -16,6 +16,7 @@ from .models import SelectedCategory, FootprintParameterMapping
 
 logger = logging.getLogger('inventree')
 
+
 class KicadDetailedPartSerializer(serializers.ModelSerializer):
     """Custom model serializer for a single KiCad part instance"""
 
