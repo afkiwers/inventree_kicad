@@ -88,6 +88,7 @@ class PartsPreviewList(generics.ListAPIView):
 
         return queryset
 
+
 class PartDetail(generics.RetrieveAPIView):
     """Detailed information endpoint for a single part instance.
     
