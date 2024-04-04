@@ -4,6 +4,9 @@ from InvenTree.helpers import str2bool
 from part.models import PartCategory, Part
 
 
+from inventree_kicad import serializers
+
+
 class Index(views.APIView):
     """Index view which provides a list of available endpoints"""
 
@@ -29,9 +32,7 @@ class Index(views.APIView):
 class CategoryList(generics.ListAPIView):
     """List of available KiCad categories"""
 
-    from .serializers import KicadCategorySerializer
-
-    serializer_class = KicadCategorySerializer
+    serializer_class = serializers.KicadCategorySerializer
 
     def get_queryset(self):
         """Return only PartCategory objects which are mapped to a SelectedCategory"""
@@ -46,9 +47,7 @@ class CategoryList(generics.ListAPIView):
 class PartsPreviewList(generics.ListAPIView):
     """Preview list for all parts in a given category"""
 
-    from .serializers import KicadPreviewPartSerializer
-
-    serializer_class = KicadPreviewPartSerializer
+    serializer_class = serializers.KicadPreviewPartSerializer
 
     def get_serializer(self, *args, **kwargs):
         """Add the parent plugin instance to the serializer contenxt"""
@@ -71,16 +70,21 @@ class PartsPreviewList(generics.ListAPIView):
 
         cascade = str2bool(plugin.get_setting('KICAD_ENABLE_SUBCATEGORY', False))
 
-        # Get the part category
-        try:
-            category = PartCategory.objects.get(id=category_id)
-        except PartCategory.DoesNotExist:
-            return Part.objects.all()
-        
-        if cascade:
-            return Part.objects.filter(category__in=category.get_descendants(include_self=True))
-        else:
-            return Part.objects.filter(category=category)
+        queryset = Part.objects.all()
+
+        category = PartCategory.objects.filter(id=category_id).first()
+
+        if category is not None:
+            if cascade:
+                queryset = queryset.filter(
+                    category__in=category.get_descendants(include_self=True)
+                )
+            else:
+                queryset = queryset.filter(category=category)
+
+        queryset = serializers.KicadPreviewPartSerializer.annotate_queryset(queryset)
+
+        return queryset
 
 
 class PartDetail(generics.RetrieveAPIView):
@@ -90,9 +94,7 @@ class PartDetail(generics.RetrieveAPIView):
     The custom plugin serializer formats the data into a KiCad compatible format.
     """
 
-    from .serializers import KicadDetailedPartSerializer
-
-    serializer_class = KicadDetailedPartSerializer
+    serializer_class = serializers.KicadDetailedPartSerializer
     queryset = Part.objects.all()
 
     def get_queryset(self):

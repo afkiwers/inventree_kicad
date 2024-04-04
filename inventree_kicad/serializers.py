@@ -1,13 +1,20 @@
+import logging
+
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
 from rest_framework.reverse import reverse_lazy
 
+
 from InvenTree.helpers_model import construct_absolute_url
+from part.filters import annotate_total_stock
 from part.models import Part, PartCategory, PartParameter
 from InvenTree.helpers import str2bool, decimal2string
 
 from .models import SelectedCategory, FootprintParameterMapping
+
+
+logger = logging.getLogger('inventree')
 
 
 class KicadDetailedPartSerializer(serializers.ModelSerializer):
@@ -419,10 +426,34 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
         if they enable it.
         """
 
-        if str2bool(self.plugin.get_setting('KICAD_ENABLE_STOCK_COUNT', False)):
-            return self.plugin.get_setting("KICAD_ENABLE_STOCK_COUNT_FORMAT", "[Stock: {1}] >> {0}").format(part.description, decimal2string(part.get_stock_count()))
+        if not hasattr(self, 'enable_stock_count'):
+            self.enable_stock_count = str2bool(self.plugin.get_setting('KICAD_ENABLE_STOCK_COUNT', False))
+        
+        if not hasattr(self, 'stock_count_format'):
+            self.stock_count_format = self.plugin.get_setting("KICAD_ENABLE_STOCK_COUNT_FORMAT", False)
 
-        return part.name
+        description = part.description
+
+        # In-stock quantity should be annotated to the queryset
+        stock_count = getattr(part, 'in_stock', 0)
+
+        if self.enable_stock_count:
+            try:
+                description = self.stock_count_format.format(part.description, decimal2string(stock_count))
+            except Exception as e:
+                logger.exception("Failed to format stock count: %s", e)
+
+        return description
+
+    @staticmethod
+    def annotate_queryset(queryset):
+        """Add extra annotations to the queryset."""
+
+        queryset = queryset.annotate(
+            in_stock=annotate_total_stock(),
+        )
+
+        return queryset
 
 
 class KicadCategorySerializer(serializers.ModelSerializer):
