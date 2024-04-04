@@ -419,10 +419,21 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
         if they enable it.
         """
 
-        if str2bool(self.plugin.get_setting('KICAD_ENABLE_STOCK_COUNT', False)):
-            return self.plugin.get_setting("KICAD_ENABLE_STOCK_COUNT_FORMAT", "[Stock: {1}] >> {0}").format(part.description, decimal2string(part.get_stock_count()))
+        if not hasattr(self, 'enable_stock_count'):
+            self.enable_stock_count = str2bool(self.plugin.get_setting('KICAD_ENABLE_STOCK_COUNT', False))
+        
+        if not hasattr(self, 'stock_count_format'):
+            self.stock_count_format = self.plugin.get_setting("KICAD_ENABLE_STOCK_COUNT_FORMAT", False)
 
-        return part.name
+        description = part.description
+
+        if self.enable_stock_count:
+            try:
+                description = self.stock_count_format.format(part.description, decimal2string(part.get_stock_count()))
+            except Exception:
+                pass
+
+        return description
 
 
 class KicadCategorySerializer(serializers.ModelSerializer):
