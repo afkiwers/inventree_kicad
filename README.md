@@ -78,7 +78,7 @@ Return to the administrative backend, navigate to the USER model, and access API
 
 ![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/admin_tokens.png)
 
-## KiCad Configuration files
+## KiCad HTTP Library File
 
 Below is an example config which should help you get started reasonably quickly. The only thing needed here is to replace **<http://127.0.0.1:8000>** with your server's InvenTree URL, and replace usertokendatastring with a valid token. Save it as a file with `.kicad_httplib` extension, as specified in the [preliminary KiCad docs](https://docs.kicad.org/master/en/eeschema/eeschema_advanced.html#http-libraries). To use it, add it as a symbol library inside KiCad.
 
@@ -95,7 +95,9 @@ Below is an example config which should help you get started reasonably quickly.
         "type": "REST_API",
         "api_version": "v1",
         "root_url": "http://127.0.0.1:8000/plugin/kicad-library-plugin",
-        "token": "usertokendatastring"
+        "token": "usertokendatastring",
+        "timeout_parts_seconds": 60,
+        "timeout_categories_seconds": 6000
     }
 }
 ```
@@ -108,6 +110,18 @@ Inside KiCad's project manager, navigate to `Preferences -> Manage Symbol Librar
 When choosing the `.kicad_httplib` file, KiCad will automatically detect that it is a HTTP lib file and only a Nickname needs to be set.
 
 It's recommended to put a **#** as prefix to make sure it is at the top of the list. Otherwise one might end up scrolling a lot.
+
+## Display Stock Information in KiCad
+If activated KiCad will show stock data inside the symbol chooser. The data will be updated whenever the set category timeout expires ([`timeout_categories_seconds`](#kicad-http-library-file)). 
+
+![image](./images/stock_data_settings.png)
+
+Users have the option to determine the presentation style of stock data through the Stock Count Display Format as shown above. In this setting, {0} represents the item description, while {1} represents the stock information as a numerical value. Using those placeholders, users can customize how this data is merged and showcased according to their preferences. An example of how this would look is shown below. 
+
+**Please Note:** The stock information is not transferred into the schematic. It is only visible inside the symbol chooser!
+
+![image](./images/stock_data.png)
+
 
 ## Use in KiCad
 
