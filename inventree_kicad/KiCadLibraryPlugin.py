@@ -6,8 +6,6 @@ This plugin supplies the endpoints and data needed for KiCad to display selected
 corresponding parts within the Kicad environment.
 
 """
-import datetime
-
 from django.core.validators import URLValidator
 
 from django.http import JsonResponse
