@@ -19,7 +19,7 @@ Prior to plugin installation, ensure that you've activated both **URL Integratio
 Navigate to the **Plugin Settings** and click on the Install Plugin button. This will trigger a new window to appear, prompting you to enter the following information:
 
 - Package Name: inventree-kicad-plugin
-- Source URL: git+<https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/inventree-kicad-plugin>
+- Source URL: <git+https://github.com/afkiwers/inventree_kicad>
 
 ![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/install_plugin_via_github_url.png)
 
