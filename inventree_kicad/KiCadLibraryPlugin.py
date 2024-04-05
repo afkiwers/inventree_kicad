@@ -43,8 +43,6 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
     SLUG = "kicad-library-plugin"
     NAME = "KiCadLibraryPlugin"
 
-    PUBLISH_DATE = datetime.date(2023, 9, 21)
-
     WEBSITE = "https://github.com/afkiwers"
 
     MIN_VERSION = '0.12.0'
@@ -65,7 +63,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'default': False,
         },
         'KICAD_ENABLE_STOCK_COUNT_FORMAT': {
-            'name': _('Display Format for Stock Count'),
+            'name': _('Stock Count Display Format'),
             'description': _('This will be displayed after the part\'s description in KiCad (right column). Note: {1} contains the Stock information, {0} the description of the part.'),
             'default': "[Stock: {1}] {0}"
         },
