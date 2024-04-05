@@ -116,7 +116,7 @@ If activated KiCad will show stock data inside the symbol chooser. The data will
 
 ![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/stock_data_settings.png)
 
-Users have the option to determine the presentation style of stock data through the Stock Count Display Format as shown above. In this setting, {0} represents the item description, while {1} represents the stock information as a numerical value. Using those placeholders, users can customize how this data is merged and showcased according to their preferences. An example of how this would look is shown below. 
+Users have the option to determine the presentation style of stock data through the **Stock Count Display Format** as shown above. In this setting, {0} represents the item description, while {1} represents the stock information as a numerical value. Using those placeholders, users can customize how this data is merged and showcased according to their preferences. An example of how this would look is shown below. 
 
 **Please Note:** The stock information is not transferred into the schematic. It is only visible inside the symbol chooser!
 
