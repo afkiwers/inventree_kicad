@@ -424,7 +424,7 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
     def get_stock(self, part):
         """Custom name function.
 
-        This will extract stock information and add it to a separate key variable which 
+        This will extract stock information and add it to a separate key variable which
         can be displayed inside the symbol picker
         """
 
