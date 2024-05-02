@@ -403,6 +403,7 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
             'id',
             'name',
             'description',
+            'stock',
         ]
 
     def __init__(self, *args, **kwargs):
@@ -418,7 +419,25 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
     id = serializers.CharField(source='pk', read_only=True)
 
     description = serializers.SerializerMethodField('get_description')
+    stock = serializers.SerializerMethodField('get_stock')
 
+    def get_stock(self, part):
+        """Custom name function.
+
+        This will extract stock information and add it to a separate key variable which
+        can be displayed inside the symbol picker
+        """
+
+        # In-stock quantity should be annotated to the queryset
+        stock_count = getattr(part, 'in_stock', 0)
+
+        try:
+            stock_count = decimal2string(stock_count)
+        except Exception as e:
+            logger.exception("Failed to format stock count: %s", e)
+
+        return stock_count
+    
     def get_description(self, part):
         """Custom name function.
 
