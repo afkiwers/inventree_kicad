@@ -367,6 +367,8 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
         """Add an external link as an attachment for the part.
         
         Note: We support the 'legacy' and 'modern' attachment tables.
+
+        Ref: https://github.com/inventree/InvenTree/pull/7420
         """
 
         # First, try the 'modern' attachment table
