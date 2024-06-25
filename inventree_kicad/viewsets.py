@@ -104,7 +104,6 @@ class PartDetail(generics.RetrieveAPIView):
 
         queryset = queryset.prefetch_related(
             'parameters',
-            'attachments',
         )
 
         return queryset
