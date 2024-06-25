@@ -15,7 +15,7 @@ from django.utils.translation import gettext_lazy as _
 
 from InvenTree.helpers import str2bool
 from common.notifications import logger
-from part.models import Part, PartParameterTemplate, PartParameter, PartAttachment
+from part.models import Part, PartParameterTemplate, PartParameter
 from plugin import InvenTreePlugin
 from plugin.base.integration.mixins import SettingsContentMixin
 from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin
@@ -357,16 +357,59 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
                         continue
 
                     # only add a datasheet if there is not already one which is already called out to be one.
-                    try:
-                        # inventree is not happy with urls which are too long, so let's make sure that this
-                        # doesn't prevent us from importing all the following parts.
-                        part = PartAttachment.objects.filter(part_id=inventree_part_id, comment='Datasheet')
-                        if not part:
-                            part = PartAttachment.objects.create(part_id=inventree_part_id, link=datasheet, comment='Datasheet')
-                    except Exception as exp:
-                        logger.debug(exp)
-                        pass
+                    self.add_attachment(inventree_part_id, datasheet)
 
             return JsonResponse({}, status=200)
 
         return JsonResponse({'error': 'No file uploaded!'}, status=204)
+
+    def add_attachment(self, part_id, link):
+        """Add an external link as an attachment for the part.
+        
+        Note: We support the 'legacy' and 'modern' attachment tables.
+
+        Ref: https://github.com/inventree/InvenTree/pull/7420
+        """
+
+        # First, try the 'modern' attachment table
+        try:
+            from common.models import Attachment
+
+            # Check if there is an existing attachment
+            attachment = Attachment.objects.filter(
+                model_type='part',
+                model_id=part_id,
+                comment__iexact='datasheet'
+            )
+
+            if not attachment.exists():
+                Attachment.objects.create(
+                    model_type='part',
+                    model_id=part_id,
+                    link=link,
+                    comment='Datasheet'
+                )
+            
+            return
+        except Exception:
+            pass
+
+        # Second, try the 'legacy' attachment table
+        try:
+            from part.models import PartAttachment
+
+            # Check if there is an existing attachment
+            attachment = PartAttachment.objects.filter(
+                part=part_id,
+                comment__iexact='datasheet'
+            )
+
+            if not attachment.exists():
+                PartAttachment.objects.create(
+                    part=part_id,
+                    link=link,
+                    comment='Datasheet'
+                )
+        
+        except Exception:
+            pass

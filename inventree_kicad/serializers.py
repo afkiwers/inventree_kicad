@@ -203,12 +203,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         and return the first one which has a comment matching "datasheet"
         """
 
-        datasheet = None
-
-        for attachment in part.attachments.all():
-            if attachment.comment.lower() == 'datasheet':
-                datasheet = attachment
-                break
+        datasheet = part.attachments.filter(comment__iexact='datasheet').first()
 
         if datasheet:
             try:
