@@ -49,10 +49,10 @@ class CategoryApi(rest_viewsets.ViewSet):
         ret = None
         part_parameter = None
 
-        if type(name) == int:
+        if isinstance(name, int):
             # an integer was passed to the function -> assume it's the ID already
             ret = name
-        elif type(name) == str:
+        elif isinstance(name, str):
             part_parameter = PartParameterTemplate.objects.filter(name=name).first()
 
             if part_parameter:
@@ -80,7 +80,7 @@ class CategoryApi(rest_viewsets.ViewSet):
         return self.update(request, pk, partial=True)
     
     def update(self, request, pk=None, **kwargs):
-        from .models import SelectedCategory, PartParameterTemplate
+        from .models import SelectedCategory
 
         category = get_object_or_404(SelectedCategory, pk=pk)
 
@@ -109,7 +109,7 @@ class CategoryApi(rest_viewsets.ViewSet):
         # Add PartParameterTemplate keys
         # Allow passing the parameter name instead of the id
         for parameter in ['default_value_parameter_template', 'footprint_parameter_template']:
-            key = 'name' if type(request.data.get(parameter)) == str else 'pk'
+            key = 'name' if isinstance(request.data.get(parameter), str) else 'pk'
             validated_data[parameter] = PartParameterTemplate.objects.filter(**{key:request.data.get(parameter)}).first()
 
         serializer = serializers.KicadDetailedCategorySerializer()
