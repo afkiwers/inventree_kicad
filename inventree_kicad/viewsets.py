@@ -113,7 +113,9 @@ class CategoryApi(rest_viewsets.ViewSet):
             validated_data[parameter] = PartParameterTemplate.objects.filter(**{key:request.data.get(parameter)}).first()
 
         serializer = serializers.KicadDetailedCategorySerializer()
-        serializer.create(validated_data)
+        created_category = serializer.create(validated_data)
+
+        serializer = serializers.KicadDetailedCategorySerializer(created_category)
 
         return response.Response(serializer.data)
     
