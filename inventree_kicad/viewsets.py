@@ -86,10 +86,7 @@ class CategoryApi(rest_viewsets.ViewSet):
 
         for parameter in ['default_value_parameter_template', 'footprint_parameter_template']:
             if parameter in request.data:
-                parameter_id = self.get_part_parameter_id_by_name(request.data.pop(parameter))
-
-                #if parameter_id:
-                request.data[parameter] = parameter_id
+                request.data[parameter] = self.get_part_parameter_id_by_name(request.data.pop(parameter))
 
         serializer = self.get_serializer(category, data=request.data, partial=kwargs.get('partial', False))
         serializer.is_valid(raise_exception=True)
@@ -98,7 +95,7 @@ class CategoryApi(rest_viewsets.ViewSet):
         return response.Response(serializer.data)
 
     def create(self, request):
-        from part.models import PartCategory
+        from part.models import PartCategory, PartParameterTemplate
 
         part_category = get_object_or_404(PartCategory, pk=request.data.get('category'))
 
@@ -108,11 +105,25 @@ class CategoryApi(rest_viewsets.ViewSet):
             "default_footprint": request.data.get('default_footprint', ''),
             "default_reference": request.data.get('default_reference', ''),
         }
+
+        # Add PartParameterTemplate keys
+        # Allow passing the parameter name instead of the id
+        for parameter in ['default_value_parameter_template', 'footprint_parameter_template']:
+            key = 'name' if type(request.data.get(parameter)) == str else 'pk'
+            validated_data[parameter] = PartParameterTemplate.objects.filter(**{key:request.data.get(parameter)}).first()
+
         serializer = serializers.KicadDetailedCategorySerializer()
         serializer.create(validated_data)
-        #serializer.is_valid(raise_exception=True)
 
         return response.Response(serializer.data)
+    
+    def destroy(self, request, pk):
+        from .models import SelectedCategory
+
+        category = get_object_or_404(SelectedCategory, pk=pk)
+        category.delete()
+
+        return response.Response(status=204)
 
 class CategoryList(generics.ListAPIView):
     """List of available KiCad categories"""
