@@ -3,8 +3,10 @@ from rest_framework import generics, permissions, response, views
 from InvenTree.helpers import str2bool
 from part.models import PartCategory, Part
 
+from rest_framework import viewsets as rest_viewsets
 
 from inventree_kicad import serializers
+from django.shortcuts import get_object_or_404
 
 
 class Index(views.APIView):
@@ -28,6 +30,89 @@ class Index(views.APIView):
             }
         )
 
+class CategoryApi(rest_viewsets.ViewSet):
+    from .models import SelectedCategory
+    queryset = SelectedCategory.objects.all()
+    serializer_class = serializers.KicadDetailedCategorySerializer
+
+    def get_serializer(self, *args, **kwargs):
+        """Add the parent plugin instance to the serializer contenxt"""
+
+        #kwargs['plugin'] = self.kwargs['plugin']
+        kwargs['context'] = {'request': self.request}
+
+        return self.serializer_class(*args, **kwargs)
+
+    def get_part_parameter_id_by_name(self, name):
+        from .models import PartParameterTemplate
+        
+        ret = None
+        part_parameter = None
+
+        if type(name) == int:
+            # an integer was passed to the function -> assume it's the ID already
+            ret = name
+        elif type(name) == str:
+            part_parameter = PartParameterTemplate.objects.filter(name=name).first()
+
+            if part_parameter:
+                ret = part_parameter.pk
+
+        return ret
+
+    def list(self, request):
+        from .models import SelectedCategory
+        
+        queryset = SelectedCategory.objects.all()
+        serializer = serializers.KicadDetailedCategorySerializer(queryset, many=True)
+
+        return response.Response(serializer.data)
+    
+    def retrieve(self, request, pk=None):
+        from .models import SelectedCategory
+
+        category = get_object_or_404(SelectedCategory, pk=pk)
+        serializer = serializers.KicadDetailedCategorySerializer(category)
+
+        return response.Response(serializer.data)
+    
+    def partial_update(self, request, pk=None):
+        return self.update(request, pk, partial=True)
+    
+    def update(self, request, pk=None, **kwargs):
+        from .models import SelectedCategory, PartParameterTemplate
+
+        category = get_object_or_404(SelectedCategory, pk=pk)
+
+        for parameter in ['default_value_parameter_template', 'footprint_parameter_template']:
+            if parameter in request.data:
+                parameter_id = self.get_part_parameter_id_by_name(request.data.pop(parameter))
+
+                #if parameter_id:
+                request.data[parameter] = parameter_id
+
+        serializer = self.get_serializer(category, data=request.data, partial=kwargs.get('partial', False))
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return response.Response(serializer.data)
+
+    def create(self, request):
+        from part.models import PartCategory
+
+        part_category = get_object_or_404(PartCategory, pk=request.data.get('category'))
+
+        validated_data = {
+            "category": part_category,
+            "default_symbol": request.data.get('default_symbol', ''),
+            "default_footprint": request.data.get('default_footprint', ''),
+            "default_reference": request.data.get('default_reference', ''),
+        }
+        serializer = serializers.KicadDetailedCategorySerializer()
+        serializer.create(validated_data)
+        #serializer.is_valid(raise_exception=True)
+
+        return response.Response(serializer.data)
 
 class CategoryList(generics.ListAPIView):
     """List of available KiCad categories"""
