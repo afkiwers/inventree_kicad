@@ -30,6 +30,7 @@ class Index(views.APIView):
             }
         )
 
+
 class CategoryApi(rest_viewsets.ViewSet):
     from .models import SelectedCategory
     queryset = SelectedCategory.objects.all()
@@ -38,7 +39,6 @@ class CategoryApi(rest_viewsets.ViewSet):
     def get_serializer(self, *args, **kwargs):
         """Add the parent plugin instance to the serializer contenxt"""
 
-        #kwargs['plugin'] = self.kwargs['plugin']
         kwargs['context'] = {'request': self.request}
 
         return self.serializer_class(*args, **kwargs)
@@ -110,7 +110,7 @@ class CategoryApi(rest_viewsets.ViewSet):
         # Allow passing the parameter name instead of the id
         for parameter in ['default_value_parameter_template', 'footprint_parameter_template']:
             key = 'name' if isinstance(request.data.get(parameter), str) else 'pk'
-            validated_data[parameter] = PartParameterTemplate.objects.filter(**{key:request.data.get(parameter)}).first()
+            validated_data[parameter] = PartParameterTemplate.objects.filter(**{key: request.data.get(parameter)}).first()
 
         serializer = serializers.KicadDetailedCategorySerializer()
         created_category = serializer.create(validated_data)
@@ -126,6 +126,7 @@ class CategoryApi(rest_viewsets.ViewSet):
         category.delete()
 
         return response.Response(status=204)
+
 
 class CategoryList(generics.ListAPIView):
     """List of available KiCad categories"""

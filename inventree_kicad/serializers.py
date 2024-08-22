@@ -488,6 +488,7 @@ class KicadCategorySerializer(serializers.ModelSerializer):
     def get_name(self, category):
         return category.pathstring
 
+
 class KicadDetailedCategorySerializer(serializers.ModelSerializer):
     """Custom model serializer for a single KiCad category instance"""
 
@@ -511,4 +512,3 @@ class KicadDetailedCategorySerializer(serializers.ModelSerializer):
             self.Meta.depth = 0
         else:
             self.Meta.depth = 1
-
