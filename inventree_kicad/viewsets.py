@@ -3,8 +3,10 @@ from rest_framework import generics, permissions, response, views
 from InvenTree.helpers import str2bool
 from part.models import PartCategory, Part
 
+from rest_framework import viewsets as rest_viewsets
 
 from inventree_kicad import serializers
+from django.shortcuts import get_object_or_404
 
 
 class Index(views.APIView):
@@ -27,6 +29,103 @@ class Index(views.APIView):
                 'parts': base_url + 'parts/',
             }
         )
+
+
+class CategoryApi(rest_viewsets.ViewSet):
+    from .models import SelectedCategory
+    queryset = SelectedCategory.objects.all()
+    serializer_class = serializers.KicadDetailedCategorySerializer
+
+    def get_serializer(self, *args, **kwargs):
+        """Add the parent plugin instance to the serializer contenxt"""
+
+        kwargs['context'] = {'request': self.request}
+
+        return self.serializer_class(*args, **kwargs)
+
+    def get_part_parameter_id_by_name(self, name):
+        from .models import PartParameterTemplate
+        
+        ret = None
+        part_parameter = None
+
+        if isinstance(name, int):
+            # an integer was passed to the function -> assume it's the ID already
+            ret = name
+        elif isinstance(name, str):
+            part_parameter = PartParameterTemplate.objects.filter(name=name).first()
+
+            if part_parameter:
+                ret = part_parameter.pk
+
+        return ret
+
+    def list(self, request):
+        from .models import SelectedCategory
+        
+        queryset = SelectedCategory.objects.all()
+        serializer = serializers.KicadDetailedCategorySerializer(queryset, many=True)
+
+        return response.Response(serializer.data)
+    
+    def retrieve(self, request, pk=None):
+        from .models import SelectedCategory
+
+        category = get_object_or_404(SelectedCategory, pk=pk)
+        serializer = serializers.KicadDetailedCategorySerializer(category)
+
+        return response.Response(serializer.data)
+    
+    def partial_update(self, request, pk=None):
+        return self.update(request, pk, partial=True)
+    
+    def update(self, request, pk=None, **kwargs):
+        from .models import SelectedCategory
+
+        category = get_object_or_404(SelectedCategory, pk=pk)
+
+        for parameter in ['default_value_parameter_template', 'footprint_parameter_template']:
+            if parameter in request.data:
+                request.data[parameter] = self.get_part_parameter_id_by_name(request.data.pop(parameter))
+
+        serializer = self.get_serializer(category, data=request.data, partial=kwargs.get('partial', False))
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return response.Response(serializer.data)
+
+    def create(self, request):
+        from part.models import PartCategory, PartParameterTemplate
+
+        part_category = get_object_or_404(PartCategory, pk=request.data.get('category'))
+
+        validated_data = {
+            "category": part_category,
+            "default_symbol": request.data.get('default_symbol', ''),
+            "default_footprint": request.data.get('default_footprint', ''),
+            "default_reference": request.data.get('default_reference', ''),
+        }
+
+        # Add PartParameterTemplate keys
+        # Allow passing the parameter name instead of the id
+        for parameter in ['default_value_parameter_template', 'footprint_parameter_template']:
+            key = 'name' if isinstance(request.data.get(parameter), str) else 'pk'
+            validated_data[parameter] = PartParameterTemplate.objects.filter(**{key: request.data.get(parameter)}).first()
+
+        serializer = serializers.KicadDetailedCategorySerializer()
+        created_category = serializer.create(validated_data)
+
+        serializer = serializers.KicadDetailedCategorySerializer(created_category)
+
+        return response.Response(serializer.data)
+    
+    def destroy(self, request, pk):
+        from .models import SelectedCategory
+
+        category = get_object_or_404(SelectedCategory, pk=pk)
+        category.delete()
+
+        return response.Response(status=204)
 
 
 class CategoryList(generics.ListAPIView):

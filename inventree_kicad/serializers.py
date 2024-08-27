@@ -487,3 +487,28 @@ class KicadCategorySerializer(serializers.ModelSerializer):
 
     def get_name(self, category):
         return category.pathstring
+
+
+class KicadDetailedCategorySerializer(serializers.ModelSerializer):
+    """Custom model serializer for a single KiCad category instance"""
+
+    class Meta:
+        """Metaclass defining serializer fields"""
+        model = SelectedCategory
+        fields = [
+            'pk',
+            'category',
+            'default_symbol',
+            'default_footprint',
+            'default_reference',
+            'default_value_parameter_template',
+            'footprint_parameter_template',
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super(KicadDetailedCategorySerializer, self).__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and request.method in ["POST", "PUT", "PATCH"]:
+            self.Meta.depth = 0
+        else:
+            self.Meta.depth = 1

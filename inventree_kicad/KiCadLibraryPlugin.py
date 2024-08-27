@@ -13,6 +13,8 @@ from django.template.loader import render_to_string
 from django.urls import include, re_path
 from django.utils.translation import gettext_lazy as _
 
+from rest_framework import routers
+
 from InvenTree.helpers import str2bool
 from common.notifications import logger
 from part.models import Part, PartParameterTemplate, PartParameter
@@ -161,6 +163,13 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
 
         from . import viewsets
 
+        api_category_router = routers.DefaultRouter()
+        api_category_router.register(r'category', viewsets.CategoryApi, basename='selectedcategory')
+
+        api_urls = [
+            re_path('', include(api_category_router.urls)),
+        ]
+
         return [
             re_path(r'v1/', include([
                 re_path(r'parts/', include([
@@ -183,6 +192,8 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
 
             re_path(r'upload(?:\.(?P<format>json))?$', self.import_meta_data, name='meta_data_upload'),
             re_path(r'progress_bar_status', self.get_import_progress, name='get_import_progress'),
+
+            re_path(r'api/', include(api_urls), name='api'),
 
             # Anything else, redirect to our top-level v1 page
             re_path('^.*$', viewsets.Index.as_view(), name='kicad-index'),
