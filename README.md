@@ -56,13 +56,149 @@ Once opened the "KiCad Categories" model, you'll have the option to add new cate
 
 ![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/admin_add_change_categories.png)
 
-#### Default Settings for Categories
+### Adding Categories to KiCad via REST API
+Alternatively you can use the REST API to add categories to KiCad. 
+The API can be accessed via the endpoint `/plugin/kicad-library-plugin/api/category/`
+
+#### Retrieve active categories
+
+##### To get a list of all active categories
+**`GET`** `/plugin/kicad-library-plugin/api/category/`
+
+Returns
+```
+[
+  {
+    "pk": 2,
+    "category": {
+      "id": 12,
+      "name": "Tantalum",
+      "pathstring": "Capacitors/Tantalum",
+      ...
+    },
+    "default_symbol": "Device:C_Polarized",
+    "default_footprint": "",
+    "default_reference": "C",
+    "default_value_parameter_template": {
+      "id": 49,
+      "name": "Value",
+      ...
+    },
+    "footprint_parameter_template": {
+      "id": 8,
+      "name": "Footprint",
+      ...
+    }
+  },
+  {
+    "pk": 1,
+    "category": {
+      "id": 6,
+      "name": "Ceramic",
+      "pathstring": "Capacitors/Ceramic",
+      ...
+    },
+    "default_symbol": "Device:C",
+    "default_footprint": "",
+    "default_reference": "C",
+    "default_value_parameter_template": {
+      "id": 49,
+      "name": "Value",
+      ...
+    },
+    "footprint_parameter_template": {
+      "id": 8,
+      "name": "Footprint",
+      ...
+    }
+  },
+  ...
+]
+```
+
+##### To get a specific category
+
+**`GET`** `/plugin/kicad-library-plugin/api/category/<id>/`
+
+where `<id>` is the primary key of the KiCad category, not the InvenTree category.
+
+Returns (for `/plugin/kicad-library-plugin/api/category/1/`)
+```
+{
+    "pk": 1,
+    "category": {
+      "id": 6,
+      "name": "Ceramic",
+      "pathstring": "Capacitors/Ceramic",
+      ...
+    },
+    "default_symbol": "Device:C_Polarized",
+    "default_footprint": "",
+    "default_reference": "C",
+    "default_value_parameter_template": {
+      "id": 49,
+      "name": "Value",
+      ...
+    },
+    "footprint_parameter_template": {
+      "id": 8,
+      "name": "Footprint",
+      ...
+    }
+}
+```
+
+#### Add new category
+To add a category to KiCad call
+
+**`POST`** `/plugin/kicad-library-plugin/api/category/`
+
+JSON data:
+```
+{
+    "category": <INVENTREE_CATEGORY_PK>,       // mandatory
+    "default_symbol": "",                      // optional
+    "default_footprint": "",                   // optional
+    "default_reference": "",                   // optional
+    "default_value_parameter_template": null,  // optional
+    "footprint_parameter_template": null       // optional
+}
+```
+
+*Note:* The parameter templates can be set either via `id`, or `name`. Set the value to a `number` or `string` respectively.
+
+#### Update category
+To update an existing category call
+
+**`PATCH`** `/plugin/kicad-library-plugin/api/category/<id>/`
+
+The request data only has to contain the values you want to change, e. g.: 
+```
+{
+    "default_symbol": "Device:C",
+    "default_value_parameter_template": "Value",
+    "footprint_parameter_template": 2
+}
+```
+
+*Note:* The parameter templates can be set either via `id`, or `name`. Set the value to a `number` or `string` respectively.
+
+#### Delete category
+To remove a category from KiCad call
+
+**`DELETE`** `/plugin/kicad-library-plugin/api/category/<id>/`
+
+without any data, where `<id>` is the KiCad category id. 
+
+*Note:* There is no undo! Be sure before calling.
+
+### Default Settings for Categories
 
 The plugin allows you to set default values when the child part lacks specific details regarding the KiCad symbol, footprint, or reference. This feature is particularly useful when dealing with components such as resistors or capacitors, as they often share the same symbols, reducing the need for repetitive data entry.
 
 ![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/admin_add_category.png)
 
-#### Utilizing Footprint Parameter Mapping
+### Utilizing Footprint Parameter Mapping
 
 If you have existing Footprint/Package Type parameters assigned to your components and prefer not to define a separate KiCad Footprint Parameter for them, you can leverage the Footprint Parameter Mapping functionality to establish a connection to KiCad Footprint names. Simply incorporate the desired mappings into the KiCad category:
 
