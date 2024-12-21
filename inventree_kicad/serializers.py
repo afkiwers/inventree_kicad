@@ -14,6 +14,7 @@ from InvenTree.helpers import str2bool, decimal2string
 from .models import SelectedCategory, FootprintParameterMapping
 
 
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('inventree')
 
 
@@ -330,7 +331,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             },
         }
 
-        logger.info("Processing part: %s", part)
+        logger.debug("Processing part: %s", part)
         return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
 
     def get_exclude_from_bom(self, part):
