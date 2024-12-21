@@ -33,7 +33,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
     Provides a set of API endpoints which conform to the KiCad REST API specification.
     """
 
-    AUTHOR = "Andre Iwers"
+    AUTHOR = "Andre Iwersssss"
 
     DESCRIPTION = _("Provides external library functionality for KiCad via the HTTP library interface")
 
