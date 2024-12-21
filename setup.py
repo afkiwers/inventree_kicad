@@ -13,7 +13,7 @@ setuptools.setup(
 
     version=KICAD_PLUGIN_VERSION,
 
-    author="Andre Iwers",
+    author="Andre Iwerssssssss",
 
     author_email="iwers11@gmail.com",
 
