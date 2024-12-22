@@ -296,6 +296,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             }
         with open('/home/inventree/log.log', 'a') as f:
             f.write(str(type(part)))
+            f.write("\n")
 
         return fields
 
