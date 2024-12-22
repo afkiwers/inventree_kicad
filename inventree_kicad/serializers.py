@@ -328,6 +328,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         }
 
         logger.debug(f"test debug UC")
+        logger.error(f"test error UC")
         # raise ValueError("UC test raise error")
         return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
 
