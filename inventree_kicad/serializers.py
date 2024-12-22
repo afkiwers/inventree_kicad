@@ -1,4 +1,3 @@
-
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
@@ -9,7 +8,6 @@ from InvenTree.helpers_model import construct_absolute_url
 from part.filters import annotate_total_stock
 from part.models import Part, PartCategory, PartParameter
 from InvenTree.helpers import str2bool, decimal2string
-from common.notifications import logger
 
 from .models import SelectedCategory, FootprintParameterMapping
 
@@ -334,12 +332,6 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                     'visible': 'False'
                 }
 
-        # with open("/home/inventree/log.log", "a") as f:
-        #     f.write(f"supplier_parts: {supplier_parts}\n")
-        #     f.write(f"num_supplier_parts: {num_supplier_parts}\n")
-        #     f.write(f"supplier_parts[0]: {supplier_parts[0]}\n")
-        #     f.write(f"type(supplier_parts[0]): {type(supplier_parts[0])}\n")
-        
         return  supplier_part_fields
 
     def get_kicad_fields(self, part):
