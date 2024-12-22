@@ -330,13 +330,14 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         with open("/home/inventree/log.log", "a") as f:                   
             f.write(f"part: {part}\n")                                     
                                                   
-        num_suppliers = part.supplier_count       
-        default_supplier = part.get_default_supplier                       
         supplier_parts = part.supplier_parts.all()                   
+        num_supplier_parts = supplier_parts.count()
+
+
         with open("/home/inventree/log.log", "a") as f:                    
-            f.write(f"num_suppliers: {num_suppliers}\n")
-            f.write(f"default_supplier: {default_supplier}\n")
             f.write(f"supplier_parts: {supplier_parts}\n")
+            f.write(f"num_supplier_parts: {num_supplier_parts}\n")
+            f.write(f"values: {supplier_parts.values()}\n")
 
         return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
 
