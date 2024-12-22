@@ -296,6 +296,26 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             }
 
         return fields
+    
+    def get_supplier_parts(self, part):
+        with open("/home/inventree/log.log", "a") as f:                   
+            f.write(f"part: {part}\n")                                     
+                                                  
+        supplier_parts = part.supplier_parts.all()                   
+        num_supplier_parts = supplier_parts.count()
+
+        with open("/home/inventree/log.log", "a") as f:
+            f.write(f"supplier_parts: {supplier_parts}\n")
+            f.write(f"num_supplier_parts: {num_supplier_parts}\n")
+            f.write(f"supplier_parts[0]: {supplier_parts[0]}\n")
+            f.write(f"type(supplier_parts[0]): {type(supplier_parts[0])}\n")
+        
+        return  {
+            'Supplier': {
+                "value": "Test supplier",
+                "visible": 'False'
+            },
+        }
 
     def get_kicad_fields(self, part):
         """Return a set of fields to be used in the KiCad symbol library"""
@@ -327,19 +347,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             },
         }
 
-        with open("/home/inventree/log.log", "a") as f:                   
-            f.write(f"part: {part}\n")                                     
-                                                  
-        supplier_parts = part.supplier_parts.all()                   
-        num_supplier_parts = supplier_parts.count()
-
-        with open("/home/inventree/log.log", "a") as f:
-            f.write(f"supplier_parts: {supplier_parts}\n")
-            f.write(f"num_supplier_parts: {num_supplier_parts}\n")
-            f.write(f"supplier_parts[0]: {supplier_parts[0]}\n")
-            f.write(f"type(supplier_parts[0]): {type(supplier_parts[0])}\n")
-
-        return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
+        return kicad_default_fields | self.get_supplier_parts(part) | self.get_custom_fields(part, list(kicad_default_fields.keys()))
 
     def get_exclude_from_bom(self, part):
         """Return whether or not the part should be excluded from the bom.
