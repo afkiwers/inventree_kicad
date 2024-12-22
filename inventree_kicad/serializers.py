@@ -1,3 +1,5 @@
+import logging
+
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
@@ -10,6 +12,9 @@ from part.models import Part, PartCategory, PartParameter
 from InvenTree.helpers import str2bool, decimal2string
 
 from .models import SelectedCategory, FootprintParameterMapping
+
+
+logger = logging.getLogger('inventree')
 
 
 class KicadDetailedPartSerializer(serializers.ModelSerializer):
