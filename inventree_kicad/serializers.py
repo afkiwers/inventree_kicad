@@ -300,7 +300,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
     def supplier_and_manufacturer_fields(self, part):
         """Return a set of fields for supplier and manufacturer information"""
     
-        num_suppliers = part.supplier_counter()
+        num_suppliers = part.supplier_count()
         default_supplier = part.get_default_supplier()
         supplier_parts = part.supplier_parts.all()
 
