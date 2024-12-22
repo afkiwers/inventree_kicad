@@ -1,5 +1,3 @@
-import logging
-import sys
 
 from django.utils.translation import gettext_lazy as _
 
@@ -11,6 +9,7 @@ from InvenTree.helpers_model import construct_absolute_url
 from part.filters import annotate_total_stock
 from part.models import Part, PartCategory, PartParameter
 from InvenTree.helpers import str2bool, decimal2string
+from common.notifications import logger
 
 from .models import SelectedCategory, FootprintParameterMapping
 
@@ -328,17 +327,8 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             },
         }
 
-        logging.basicConfig(
-            level=logging.DEBUG,
-            format='%(asctime)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.FileHandler("/home/inventree/logs/inventree_kicad.log"),
-            ]
-        )
-        logging.info("test log info")
-        logging.debug("test log")
-        logging.debug("Processing part: %s", part)
-
+        logger.debug('Test log UC')
+        logger.debug(part)
         return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
 
     def get_exclude_from_bom(self, part):
