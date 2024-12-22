@@ -327,7 +327,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             },
         }
 
-        with open("/home/inventree/log.log") as f:                   
+        with open("/home/inventree/log.log", "a") as f:                   
             f.write(f"part: {part}\n")                                     
                                                   
         num_suppliers = part.supplier_count       
