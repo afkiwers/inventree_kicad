@@ -329,6 +329,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         logger.debug('Test log UC')
         logger.debug(part)
+        logger.error('Test log UC')
         return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
 
     def get_exclude_from_bom(self, part):
