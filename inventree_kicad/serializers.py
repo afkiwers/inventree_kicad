@@ -294,6 +294,8 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 "value": parameter.data,
                 "visible": 'False'
             }
+        with open('/home/inventree/log.log', 'a') as f:
+            f.write(str(type(part)))
 
         return fields
 
@@ -327,9 +329,6 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             },
         }
 
-        with open('/home/inventree/log/kicad_fields.txt', 'a') as f:
-            f.write("testtttt\n")
-            f.write(str(part))
         return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
 
     def get_exclude_from_bom(self, part):
