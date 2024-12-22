@@ -297,25 +297,50 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         return fields
     
-    def get_supplier_parts(self, part):
-        with open("/home/inventree/log.log", "a") as f:                   
-            f.write(f"part: {part}\n")                                     
+    def get_supplier_part_fields(self, part):
+        """Return a set of fields for supplier and manufacturer information to be used in the KiCad symbol library"""
                                                   
         supplier_parts = part.supplier_parts.all()                   
         num_supplier_parts = supplier_parts.count()
 
-        with open("/home/inventree/log.log", "a") as f:
-            f.write(f"supplier_parts: {supplier_parts}\n")
-            f.write(f"num_supplier_parts: {num_supplier_parts}\n")
-            f.write(f"supplier_parts[0]: {supplier_parts[0]}\n")
-            f.write(f"type(supplier_parts[0]): {type(supplier_parts[0])}\n")
+        supplier_part_fields = {}
+        if (num_supplier_parts > 0):
+            for idx, supplier_part in enumerate(supplier_parts):
+
+                supplier_part_fields[f'Supplier {idx + 1}'] = {
+                    'value': supplier_part.supplier.name,
+                    'visible': 'False'
+                }
+
+                supplier_part_fields[f'Supplier Part Number {idx + 1}'] = {
+                    'value': supplier_part.SKU,
+                    'visible': 'False'
+                }
+
+                if supplier_part.manufacturer_part:
+                    manufacturer_name = supplier_part.manufacturer_part.manufacturer.name
+                    manufacturer_part_number = supplier_part.manufacturer_part.MPN
+                else:
+                    manufacturer_name = ''
+                    manufacturer_part_number = ''
+                
+                supplier_part_fields[f'Manufacturer {idx + 1}'] = {
+                    'value': manufacturer_name,
+                    'visible': 'False'
+                }
+
+                supplier_part_fields[f'Manufacturer Part Number {idx + 1}'] = {
+                    'value': manufacturer_part_number,
+                    'visible': 'False'
+                }
+
+        # with open("/home/inventree/log.log", "a") as f:
+        #     f.write(f"supplier_parts: {supplier_parts}\n")
+        #     f.write(f"num_supplier_parts: {num_supplier_parts}\n")
+        #     f.write(f"supplier_parts[0]: {supplier_parts[0]}\n")
+        #     f.write(f"type(supplier_parts[0]): {type(supplier_parts[0])}\n")
         
-        return  {
-            'Supplier': {
-                "value": "Test supplier",
-                "visible": 'False'
-            },
-        }
+        return  supplier_part_fields
 
     def get_kicad_fields(self, part):
         """Return a set of fields to be used in the KiCad symbol library"""
@@ -347,7 +372,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             },
         }
 
-        return kicad_default_fields | self.get_supplier_parts(part) | self.get_custom_fields(part, list(kicad_default_fields.keys()))
+        return kicad_default_fields | self.get_supplier_part_fields(part) | self.get_custom_fields(part, list(kicad_default_fields.keys()))
 
     def get_exclude_from_bom(self, part):
         """Return whether or not the part should be excluded from the bom.
