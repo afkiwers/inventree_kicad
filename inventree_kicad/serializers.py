@@ -15,18 +15,6 @@ from InvenTree.helpers import str2bool, decimal2string
 from .models import SelectedCategory, FootprintParameterMapping
 
 
-# Remove existing handlers to avoid duplicates
-for handler in logging.root.handlers[:]:
-    logging.root.removeHandler(handler)
-
-# Configure logging to show in console
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)]
-)
-
-
 class KicadDetailedPartSerializer(serializers.ModelSerializer):
     """Custom model serializer for a single KiCad part instance"""
 
@@ -340,8 +328,17 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             },
         }
 
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler("/home/inventree/logs/inventree_kicad.log"),
+            ]
+        )
+        logging.info("test log info")
         logging.debug("test log")
         logging.debug("Processing part: %s", part)
+
         return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
 
     def get_exclude_from_bom(self, part):
