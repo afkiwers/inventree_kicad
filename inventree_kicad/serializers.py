@@ -327,7 +327,8 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             },
         }
 
-        raise ValueError("UC test raise error")
+        logger.debug(f"test debug UC")
+        # raise ValueError("UC test raise error")
         return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
 
     def get_exclude_from_bom(self, part):
