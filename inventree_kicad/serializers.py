@@ -294,11 +294,22 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 "value": parameter.data,
                 "visible": 'False'
             }
-        with open('/home/inventree/log.log', 'a') as f:
-            f.write(str(type(part)))
-            f.write("\n")
 
         return fields
+
+    def supplier_and_manufacturer_fields(self, part):
+        """Return a set of fields for supplier and manufacturer information"""
+    
+        num_suppliers = part.supplier_counter()
+        default_supplier = part.get_default_supplier()
+        supplier_parts = part.supplier_parts.all()
+
+
+        with open("/home/inventree/log.log", "a") as f:
+            f.write(f"num_suppliers: {num_suppliers}\n")
+            f.write(f"default_supplier: {default_supplier}\n")
+            f.write(f"supplier_parts: {supplier_parts}\n")
+
 
     def get_kicad_fields(self, part):
         """Return a set of fields to be used in the KiCad symbol library"""
@@ -330,7 +341,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             },
         }
 
-        return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
+        return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys())) | self.supplier_and_manufacturer_fields(part)
 
     def get_exclude_from_bom(self, part):
         """Return whether or not the part should be excluded from the bom.
