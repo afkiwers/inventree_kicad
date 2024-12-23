@@ -302,7 +302,14 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
     
     def get_supplier_part_fields(self, part):
         """Return a set of fields for supplier and manufacturer information to be used in the KiCad symbol library"""
-                                                  
+
+        part_id = part.id
+
+        with open('/home/inventree/log.log', 'a') as f:
+            f.write(f"part_id: {part_id}\n")
+
+        
+        #####
         supplier_parts = part.supplier_parts.all()                   
         num_supplier_parts = supplier_parts.count()
 
