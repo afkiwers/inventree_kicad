@@ -305,7 +305,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         """Return a set of fields for supplier and manufacturer information to be used in the KiCad symbol library"""
 
         part_id = part.id
-        manufacturer_parts = ManufacturerPart.objects.get(part=part.id)
+        manufacturer_parts = ManufacturerPart.objects(part=part.pk).prefetch_related('supplier_parts')
 
         with open('/home/inventree/log.log', 'a') as f:
             f.write(f"part_id: {part_id}\n")
