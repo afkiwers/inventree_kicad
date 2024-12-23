@@ -9,7 +9,7 @@ from rest_framework.reverse import reverse_lazy
 from InvenTree.helpers_model import construct_absolute_url
 from part.filters import annotate_total_stock
 from part.models import Part, PartCategory, PartParameter
-from company.models import ManufacturerPart
+from company.models import ManufacturerPart, SupplierPart
 from InvenTree.helpers import str2bool, decimal2string
 
 from .models import SelectedCategory, FootprintParameterMapping
@@ -304,50 +304,100 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
     def get_supplier_part_fields(self, part):
         """Return a set of fields for supplier and manufacturer information to be used in the KiCad symbol library"""
 
-        part_id = part.id
         manufacturer_parts = ManufacturerPart.objects.filter(part=part.pk).prefetch_related('supplier_parts')
 
-        with open('/home/inventree/log.log', 'a') as f:
-            f.write(f"part_id: {part_id}\n")
-            f.write(f"manufacturer_parts: {manufacturer_parts}\n")
+        supplier_parts_used = set()
+        kicad_fields = {}
+        for mp_idx, mp_part in enumerate(manufacturer_parts):
 
-        
-        #####
-        supplier_parts = part.supplier_parts.all()                   
-        num_supplier_parts = supplier_parts.count()
+            # get manufaturer and MPN
+            manufacturer_name = mp_part.manufacturer.name if mp_part and mp_part.manufacturer else ''
+            manufacturer_mpn = mp_part.MPN if mp_part else ''
 
-        supplier_part_fields = {}
-        if (num_supplier_parts > 0):
-            for idx, supplier_part in enumerate(supplier_parts):
+            # create fields for manufacturer and MPN
+            kicad_fields[f'Manufacturer_{mp_idx + 1}'] = {
+                'value': manufacturer_name,
+                'visible': 'False'
+            }
+            kicad_fields[f'MPN_{mp_idx + 1}'] = {
+                'value': manufacturer_mpn,
+                'visible': 'False'
+            }
 
-                supplier_part_fields[f'Supplier {idx + 1}'] = {
-                    'value': supplier_part.supplier.name,
-                    'visible': 'False'
-                }
+            for sp_idx, sp_part in enumerate(mp_part.supplier_parts.all()):
+                supplier_parts_used.add(sp_part)
 
-                supplier_part_fields[f'Supplier Part Number {idx + 1}'] = {
-                    'value': supplier_part.SKU,
-                    'visible': 'False'
-                }
-
-                if supplier_part.manufacturer_part:
-                    manufacturer_name = supplier_part.manufacturer_part.manufacturer.name
-                    manufacturer_part_number = supplier_part.manufacturer_part.MPN
-                else:
-                    manufacturer_name = ''
-                    manufacturer_part_number = ''
+                # get supplier and SKU
+                supplier_name = sp_part.supplier.name if sp_part and sp_part.supplier else ''
+                supplier_sku = sp_part.SKU if sp_part else ''
                 
-                supplier_part_fields[f'Manufacturer {idx + 1}'] = {
-                    'value': manufacturer_name,
+                # create fields for supplier and SKU
+                kicad_fields[f'Supplier_{mp_idx + 1} {sp_idx + 1}'] = {
+                    'value': supplier_name,
+                    'visible': 'False'
+                }
+                kicad_fields[f'SPN_{mp_idx + 1} {sp_idx + 1}'] = {
+                    'value': supplier_sku,
                     'visible': 'False'
                 }
 
-                supplier_part_fields[f'Manufacturer Part Number {idx + 1}'] = {
-                    'value': manufacturer_part_number,
-                    'visible': 'False'
-                }
+        # add any supplier parts that are not associated with a manufacturer part
+        for sp_idx, sp_part in enumerate(
+            SupplierPart.objects.filter(part__pk=part.pk)
+        ):
+            if sp_part in supplier_parts_used:
+                continue
 
-        return  supplier_part_fields
+            supplier_parts_used.add(sp_part)
+
+            supplier_name = sp_part.supplier.name if sp_part and sp_part.supplier else ''
+            supplier_sku = sp_part.SKU if sp_part else ''
+
+            kicad_fields[f'Supplier_{sp_idx + 1}'] = {
+                'value': supplier_name,
+                'visible': 'False'
+            }
+            kicad_fields[f'SPN_{sp_idx + 1}'] = {
+                'value': supplier_sku,
+                'visible': 'False'
+            }
+               
+        #####
+        # supplier_parts = part.supplier_parts.all()                   
+        # num_supplier_parts = supplier_parts.count()
+
+        # supplier_part_fields = {}
+        # if (num_supplier_parts > 0):
+        #     for idx, supplier_part in enumerate(supplier_parts):
+
+        #         supplier_part_fields[f'Supplier {idx + 1}'] = {
+        #             'value': supplier_part.supplier.name,
+        #             'visible': 'False'
+        #         }
+
+        #         supplier_part_fields[f'Supplier Part Number {idx + 1}'] = {
+        #             'value': supplier_part.SKU,
+        #             'visible': 'False'
+        #         }
+
+        #         if supplier_part.manufacturer_part:
+        #             manufacturer_name = supplier_part.manufacturer_part.manufacturer.name
+        #             manufacturer_part_number = supplier_part.manufacturer_part.MPN
+        #         else:
+        #             manufacturer_name = ''
+        #             manufacturer_part_number = ''
+                
+        #         supplier_part_fields[f'Manufacturer {idx + 1}'] = {
+        #             'value': manufacturer_name,
+        #             'visible': 'False'
+        #         }
+
+        #         supplier_part_fields[f'Manufacturer Part Number {idx + 1}'] = {
+        #             'value': manufacturer_part_number,
+        #             'visible': 'False'
+        #         }
+
+        return kicad_fields
 
     def get_kicad_fields(self, part):
         """Return a set of fields to be used in the KiCad symbol library"""
