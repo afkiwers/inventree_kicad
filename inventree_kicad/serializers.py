@@ -9,6 +9,7 @@ from rest_framework.reverse import reverse_lazy
 from InvenTree.helpers_model import construct_absolute_url
 from part.filters import annotate_total_stock
 from part.models import Part, PartCategory, PartParameter
+from company.models import ManufacturerPart
 from InvenTree.helpers import str2bool, decimal2string
 
 from .models import SelectedCategory, FootprintParameterMapping
@@ -304,9 +305,11 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         """Return a set of fields for supplier and manufacturer information to be used in the KiCad symbol library"""
 
         part_id = part.id
+        manufacturer_parts = ManufacturerPart.objects.get(part=part.id)
 
         with open('/home/inventree/log.log', 'a') as f:
             f.write(f"part_id: {part_id}\n")
+            f.write(f"manufacturer_parts: {manufacturer_parts}\n")
 
         
         #####
