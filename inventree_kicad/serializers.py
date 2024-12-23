@@ -332,11 +332,11 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 supplier_sku = sp_part.SKU if sp_part else ''
                 
                 # create fields for supplier and SKU
-                kicad_fields[f'Supplier_{mp_idx + 1} {sp_idx + 1}'] = {
+                kicad_fields[f'Supplier_{mp_idx + 1}_{sp_idx + 1}'] = {
                     'value': supplier_name,
                     'visible': 'False'
                 }
-                kicad_fields[f'SPN_{mp_idx + 1} {sp_idx + 1}'] = {
+                kicad_fields[f'SPN_{mp_idx + 1}_{sp_idx + 1}'] = {
                     'value': supplier_sku,
                     'visible': 'False'
                 }
@@ -362,41 +362,6 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 'visible': 'False'
             }
                
-        #####
-        # supplier_parts = part.supplier_parts.all()                   
-        # num_supplier_parts = supplier_parts.count()
-
-        # supplier_part_fields = {}
-        # if (num_supplier_parts > 0):
-        #     for idx, supplier_part in enumerate(supplier_parts):
-
-        #         supplier_part_fields[f'Supplier {idx + 1}'] = {
-        #             'value': supplier_part.supplier.name,
-        #             'visible': 'False'
-        #         }
-
-        #         supplier_part_fields[f'Supplier Part Number {idx + 1}'] = {
-        #             'value': supplier_part.SKU,
-        #             'visible': 'False'
-        #         }
-
-        #         if supplier_part.manufacturer_part:
-        #             manufacturer_name = supplier_part.manufacturer_part.manufacturer.name
-        #             manufacturer_part_number = supplier_part.manufacturer_part.MPN
-        #         else:
-        #             manufacturer_name = ''
-        #             manufacturer_part_number = ''
-                
-        #         supplier_part_fields[f'Manufacturer {idx + 1}'] = {
-        #             'value': manufacturer_name,
-        #             'visible': 'False'
-        #         }
-
-        #         supplier_part_fields[f'Manufacturer Part Number {idx + 1}'] = {
-        #             'value': manufacturer_part_number,
-        #             'visible': 'False'
-        #         }
-
         return kicad_fields
 
     def get_kicad_fields(self, part):
