@@ -255,6 +255,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOARD_PARAMETER', None),
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_SIM_PARAMETER', None),
             self.plugin.get_setting('KICAD_VALUE_PARAMETER ', None),
+            'Kicad_Visible_Fields'
         ]
 
         # exclude default value parameter template. This will be used for the actual value
@@ -284,6 +285,14 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 'visible': self.plugin.get_setting('KICAD_INCLUDE_IPN', 'False')
             }
 
+        # Check if a parameter for setting visisble fields exists
+        ki_visible_fields_param = part.parameters.filter(template__name='Kicad_Visible_Fields').first()
+        ki_visible_fields = []
+
+        if ki_visible_fields_param:
+            ki_visible_fields = ki_visible_fields_param.data.split(',')
+            ki_visible_fields = [field.strip().lower() for field in ki_visible_fields]
+
         for parameter in part.parameters.all():
             # Exclude any which have already been used for default KiCad fields
             if str(parameter.template.pk) in excluded_templates:
@@ -293,9 +302,11 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             if parameter.template.name.lower() in excluded_field_names:
                 continue
 
+            is_visible = 'True' if parameter.template.name.lower().strip() in ki_visible_fields else 'False'
+
             fields[parameter.template.name] = {
                 "value": parameter.data,
-                "visible": 'False'
+                "visible": is_visible
             }
 
         return fields
