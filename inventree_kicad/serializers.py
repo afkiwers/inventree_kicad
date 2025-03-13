@@ -255,7 +255,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOARD_PARAMETER', None),
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_SIM_PARAMETER', None),
             self.plugin.get_setting('KICAD_VALUE_PARAMETER ', None),
-            'Kicad_Visible_Fields'
+            self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER', None)
         ]
 
         # exclude default value parameter template. This will be used for the actual value
@@ -286,7 +286,9 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             }
 
         # Check if a parameter for setting visisble fields exists
-        ki_visible_fields_param = part.parameters.filter(template__name='Kicad_Visible_Fields').first()
+        ki_visible_fields_param = part.parameters.filter(
+            template__name=self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER', 'Kicad_Visible_Fields')
+        ).first()
         ki_visible_fields = []
 
         if ki_visible_fields_param:
