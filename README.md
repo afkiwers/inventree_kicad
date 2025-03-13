@@ -208,6 +208,16 @@ Additionally, you can combine this with the per-category "Footprint Parameter Te
 
 ![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/admin_footprint_parameter_override.png)
 
+### Setting default visibility of footprint parameters
+
+If you want to make specific parameters always visible on a footprint, you can add a new parameter to your part parameter template to configure the default visibility.
+
+By default, setting a parameter named `Kicad_Visible_Fields` with comma-separated names of the parameters you would like to be visible on your footprint will be set as visible. Spaces between commas and parameter names are tolerated.
+
+![image](images/visible_parameter_field_example.png)
+
+The parameter name used to check field visibility can be changed in settings. This parameter will not be visible from KiCad.
+
 ## Creating User Access Tokens
 
 Return to the administrative backend, navigate to the USER model, and access API Tokens. Select "ADD API Token" to generate a token designated for a specific user. It's crucial to highlight the importance of creating separate tokens for each user, rather than using a universal token for everyone.
