@@ -214,7 +214,7 @@ If you want to make specific parameters always visible on a footprint, you can a
 
 By default, setting a parameter named `Kicad_Visible_Fields` with comma-separated names of the parameters you would like to be visible on your footprint will be set as visible. Spaces between commas and parameter names are tolerated.
 
-![image](images/visible_parameter_field_example.png)
+![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/visible_parameter_field_example.png)
 
 The parameter name used to check field visibility can be changed in settings. This parameter will not be visible from KiCad.
 
