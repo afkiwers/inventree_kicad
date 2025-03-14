@@ -60,7 +60,7 @@ Once opened the "KiCad Categories" model, you'll have the option to add new cate
 Alternatively you can use the REST API to add categories to KiCad. 
 The API can be accessed via the endpoint `/plugin/kicad-library-plugin/api/category/`
 
-#### Retrieve active categories
+#### Retrieve Active Categories
 
 ##### To get a list of all active categories
 **`GET`** `/plugin/kicad-library-plugin/api/category/`
@@ -116,7 +116,7 @@ Returns
 ]
 ```
 
-##### To get a specific category
+##### Get a Specific Category
 
 **`GET`** `/plugin/kicad-library-plugin/api/category/<id>/`
 
@@ -148,7 +148,7 @@ Returns (for `/plugin/kicad-library-plugin/api/category/1/`)
 }
 ```
 
-#### Add new category
+#### Add a New Category
 To add a category to KiCad call
 
 **`POST`** `/plugin/kicad-library-plugin/api/category/`
@@ -167,7 +167,7 @@ JSON data:
 
 *Note:* The parameter templates can be set either via `id`, or `name`. Set the value to a `number` or `string` respectively.
 
-#### Update category
+#### Update Category
 To update an existing category call
 
 **`PATCH`** `/plugin/kicad-library-plugin/api/category/<id>/`
@@ -183,7 +183,7 @@ The request data only has to contain the values you want to change, e. g.:
 
 *Note:* The parameter templates can be set either via `id`, or `name`. Set the value to a `number` or `string` respectively.
 
-#### Delete category
+#### Delete Category
 To remove a category from KiCad call
 
 **`DELETE`** `/plugin/kicad-library-plugin/api/category/<id>/`
@@ -208,7 +208,7 @@ Additionally, you can combine this with the per-category "Footprint Parameter Te
 
 ![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/admin_footprint_parameter_override.png)
 
-### Setting default visibility of footprint parameters
+### Setting Default Visibility of Footprint Parameters
 
 If you want to make specific parameters always visible on a footprint, you can add a new parameter to your part parameter template to configure the default visibility.
 
