@@ -98,6 +98,11 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'description': _('The part parameter to use for the value.'),
             'model': 'part.partparametertemplate',
         },
+        'KICAD_FIELD_VISIBILITY_PARAMETER': {
+            'name': _('Field Visibility Parameter'),
+            'description': _('The part parameter to use for setting visibility of part parameters.'),
+            'default': "Kicad_Visible_Fields"
+        },
         'KICAD_EXCLUDE_FROM_BOM_PARAMETER': {
             'name': _('BOM Exclusion Parameter'),
             'description': _('The part parameter to use for to exclude it from the BOM.'),
