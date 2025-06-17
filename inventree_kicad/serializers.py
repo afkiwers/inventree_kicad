@@ -16,6 +16,19 @@ from .models import SelectedCategory, FootprintParameterMapping
 
 logger = logging.getLogger('inventree')
 
+def get_name(self, part):
+    """Check against the plugin's setting to see if the part's name, or IPN should be used.
+    """
+
+    use_ipn = self.plugin.get_setting('KICAD_USE_IPN_AS_NAME', False)
+
+    if type(use_ipn) == str:
+        use_ipn = use_ipn != "False"
+    elif type(use_ipn) != bool:
+        return part.name
+
+    return part.IPN or part.name if use_ipn else part.name
+
 
 class KicadDetailedPartSerializer(serializers.ModelSerializer):
     """Custom model serializer for a single KiCad part instance"""
@@ -59,12 +72,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
     fields = serializers.SerializerMethodField('get_kicad_fields')
 
     def get_name(self, part):
-        """Check against the plugin's setting to see if the part's name, or IPN should be used.
-        """
-
-        use_ipn = self.plugin.get_setting('KICAD_USE_IPN_AS_NAME', False)
-
-        return part.IPN if use_ipn else part.name
+        return get_name(self, part)
 
     def get_kicad_category(self, part):
         """For the provided part instance, find the associated SelectedCategory instance.
@@ -441,12 +449,7 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField('get_name')
 
     def get_name(self, part):
-        """Check against the plugin's setting to see if the part's name, or IPN should be used.
-        """
-
-        use_ipn = self.plugin.get_setting('KICAD_USE_IPN_AS_NAME', False)
-
-        return part.IPN if use_ipn else part.name
+            return get_name(self, part)
 
     def get_stock(self, part):
         """Custom name function.
