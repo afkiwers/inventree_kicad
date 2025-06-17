@@ -59,7 +59,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
     fields = serializers.SerializerMethodField('get_kicad_fields')
 
     def get_name(self, part):
-        """Check against the plugins setting to see if the parts name, or IPN should be used.
+        """Check against the plugin's setting to see if the part's name, or IPN should be used.
         """
 
         use_ipn = self.plugin.get_setting('KICAD_USE_IPN_AS_NAME', False)
@@ -441,7 +441,7 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField('get_name')
 
     def get_name(self, part):
-        """Check against the plugins setting to see if the parts name, or IPN should be used.
+        """Check against the plugin's setting to see if the part's name, or IPN should be used.
         """
 
         use_ipn = self.plugin.get_setting('KICAD_USE_IPN_AS_NAME', False)

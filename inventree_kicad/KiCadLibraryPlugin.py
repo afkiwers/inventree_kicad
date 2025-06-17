@@ -129,7 +129,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
         },
         'KICAD_USE_IPN_AS_NAME': {
             'name': _('Use IPN insead of Name'),
-            'description': _('When True, the plugin will provide IPN instead of Name'),
+            'description': _('When True, the plugin will use IPN instead of Name'),
             'validator': bool,
             'default': False,
         },
