@@ -54,8 +54,17 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
     exclude_from_bom = serializers.SerializerMethodField('get_exclude_from_bom')
     exclude_from_board = serializers.SerializerMethodField('get_exclude_from_board')
     exclude_from_sim = serializers.SerializerMethodField('get_exclude_from_sim')
+    name = serializers.SerializerMethodField('get_name')
 
     fields = serializers.SerializerMethodField('get_kicad_fields')
+
+    def get_name(self, part):
+        """Check against the plugins setting to see if the parts name, or IPN should be used.
+        """
+
+        use_ipn = self.plugin.get_setting('KICAD_USE_IPN_AS_NAME', False)
+
+        return part.IPN if use_ipn else part.name
 
     def get_kicad_category(self, part):
         """For the provided part instance, find the associated SelectedCategory instance.
@@ -428,6 +437,16 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
 
     description = serializers.SerializerMethodField('get_description')
     stock = serializers.SerializerMethodField('get_stock')
+
+    name = serializers.SerializerMethodField('get_name')
+
+    def get_name(self, part):
+        """Check against the plugins setting to see if the parts name, or IPN should be used.
+        """
+
+        use_ipn = self.plugin.get_setting('KICAD_USE_IPN_AS_NAME', False)
+
+        return part.IPN if use_ipn else part.name
 
     def get_stock(self, part):
         """Custom name function.
