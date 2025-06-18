@@ -24,9 +24,9 @@ def _determine_part_name(self, part):
 
     use_ipn = self.plugin.get_setting('KICAD_USE_IPN_AS_NAME', False)
 
-    if type(use_ipn) == str:
-        use_ipn = not (use_ipn.lower() in ["false", "no", "0", "n", "off"] )
-    elif type(use_ipn) != bool:
+    if isinstance(use_ipn, str):
+        use_ipn = str2bool(use_ipn)
+    elif not isinstance(use_ipn, bool):
         return part.name
 
     return part.IPN or part.name if use_ipn else part.name
