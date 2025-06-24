@@ -19,12 +19,23 @@ from InvenTree.helpers import str2bool
 from common.notifications import logger
 from part.models import Part, PartParameterTemplate, PartParameter
 from plugin import InvenTreePlugin
-from plugin.base.integration.mixins import SettingsContentMixin
 from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin
 import xml.etree.ElementTree as elementTree
 
 from .models import ProgressIndicator
 from .version import KICAD_PLUGIN_VERSION
+
+
+try:
+    from plugin.base.integration.mixins import SettingsContentMixin
+except ImportError:
+    class SettingsContentMixin:
+        """Dummy mixin class for backwards compatibility.
+        
+        With the move the modern UI, this mixin is no longer used.
+        It is included here to maintain compatibility with older versions of InvenTree.
+        """
+        ...
 
 
 class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixin, InvenTreePlugin):
