@@ -255,7 +255,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOARD_PARAMETER', None),
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_SIM_PARAMETER', None),
             self.plugin.get_setting('KICAD_VALUE_PARAMETER ', None),
-            self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER', None)
+            self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER', None),
         ]
 
         # exclude default value parameter template. This will be used for the actual value
@@ -285,15 +285,30 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 'visible': self.plugin.get_setting('KICAD_INCLUDE_IPN', 'False')
             }
 
-        # Check if a parameter for setting visisble fields exists
-        ki_visible_fields_param = part.parameters.filter(
-            template__name=self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER', 'Kicad_Visible_Fields')
-        ).first()
-        ki_visible_fields = []
 
-        if ki_visible_fields_param:
-            ki_visible_fields = ki_visible_fields_param.data.split(',')
-            ki_visible_fields = [field.strip().lower() for field in ki_visible_fields]
+        # Find the value parameter value associated with this part instance
+        template_id = self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER', None)
+        kicad_local_field_visibility = None
+        try:
+            # check if local parameter set, if so extract fields that need displaying in KiCad
+            kicad_local_field_visibility = self.get_parameter_value(part, template_id, None).split(',')
+
+            # make lower case and strip
+            kicad_local_field_visibility = [field.strip().lower() for field in kicad_local_field_visibility]
+
+        except:
+            pass # ignore if there are any issues
+
+
+        # load the global visibility settings if available and valid
+        try:
+            kicad_global_field_visibility = self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER_GLOBAL',
+                                                                    None).split(',')
+
+            kicad_global_field_visibility = [field.strip().lower() for field in kicad_global_field_visibility]
+        except:
+            pass  # ignore if there are any issues
+
 
         for parameter in part.parameters.all():
             # Exclude any which have already been used for default KiCad fields
@@ -304,10 +319,14 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             if parameter.template.name.lower() in excluded_field_names:
                 continue
 
-            is_visible = 'True' if parameter.template.name.lower().strip() in ki_visible_fields else 'False'
+            is_visible = 'True' if parameter.template.name.lower().strip() in kicad_global_field_visibility else 'False'
+
+            # Check if there is a local override
+            if kicad_local_field_visibility != None:
+                is_visible = 'True' if parameter.template.name.lower().strip() in kicad_local_field_visibility else 'False'
 
             fields[parameter.template.name] = {
-                "value": parameter.data,
+                "value": f'{parameter.data} {parameter.units}'.strip(),
                 "visible": is_visible
             }
 
