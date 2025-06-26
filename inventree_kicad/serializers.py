@@ -298,10 +298,9 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         except AttributeError:
             pass  # ignore if there are any issues
 
-
         # load the global visibility settings if available and valid
         try:
-            kicad_global_field_visibility = self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER_GLOBAL',  None).split(',')
+            kicad_global_field_visibility = self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER_GLOBAL', None).split(',')
 
             kicad_global_field_visibility = [field.strip().lower() for field in kicad_global_field_visibility]
 
