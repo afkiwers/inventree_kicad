@@ -19,19 +19,19 @@ from InvenTree.helpers import str2bool
 from common.notifications import logger
 from part.models import Part, PartParameterTemplate, PartParameter
 from plugin import InvenTreePlugin
+
 from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin
 import xml.etree.ElementTree as elementTree
 
 from .models import ProgressIndicator
 from .version import KICAD_PLUGIN_VERSION
 
-
 try:
     from plugin.base.integration.mixins import SettingsContentMixin
 except ImportError:
-    class SettingsContentMixin:
+    class SettingsContentMixin:  # noqa: F811
         """Dummy mixin class for backwards compatibility.
-        
+
         With the move the modern UI, this mixin is no longer used.
         It is included here to maintain compatibility with older versions of InvenTree.
         """
@@ -111,7 +111,12 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
         },
         'KICAD_FIELD_VISIBILITY_PARAMETER': {
             'name': _('Field Visibility Parameter'),
-            'description': _('The part parameter to use for setting visibility of part parameters.'),
+            'description': _('Set field visibility in KiCad using this parameter. Enter comma-separated InvenTree parameter names to show per part.'),
+            'model': 'part.partparametertemplate',
+        },
+        'KICAD_FIELD_VISIBILITY_PARAMETER_GLOBAL': {
+            'name': _('GLobal Field Visibility Parameter'),
+            'description': _('Global version of KICAD_FIELD_VISIBILITY_PARAMETER; overridden if set locally.'),
             'default': "Kicad_Visible_Fields"
         },
         'KICAD_EXCLUDE_FROM_BOM_PARAMETER': {
