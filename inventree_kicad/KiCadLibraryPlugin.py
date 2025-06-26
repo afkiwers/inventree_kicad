@@ -143,6 +143,12 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'validator': bool,
             'default': False,
         },
+        'KICAD_USE_IPN_AS_NAME': {
+            'name': _('Use IPN instead of Name'),
+            'description': _('When True, the plugin will use IPN instead of Name'),
+            'validator': bool,
+            'default': False,
+        },
         'IMPORT_INVENTREE_ID_FALLBACK': {
             'name': _('[KiCad Metadata Import] Match Against Part Name'),
             'description': _(

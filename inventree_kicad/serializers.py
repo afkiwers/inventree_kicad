@@ -16,6 +16,21 @@ from .models import SelectedCategory, FootprintParameterMapping
 
 logger = logging.getLogger('inventree')
 
+def _determine_part_name(self, part):
+    """Resolve part name for KiCad based on plugin setting.
+
+    Returns `part.IPN` or `part.name` based on `KICAD_USE_IPN_AS_NAME`.
+    """
+
+    use_ipn = self.plugin.get_setting('KICAD_USE_IPN_AS_NAME', False)
+
+    if isinstance(use_ipn, str):
+        use_ipn = str2bool(use_ipn)
+    elif not isinstance(use_ipn, bool):
+        return part.name
+
+    return part.IPN or part.name if use_ipn else part.name
+
 
 class KicadDetailedPartSerializer(serializers.ModelSerializer):
     """Custom model serializer for a single KiCad part instance"""
@@ -54,8 +69,13 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
     exclude_from_bom = serializers.SerializerMethodField('get_exclude_from_bom')
     exclude_from_board = serializers.SerializerMethodField('get_exclude_from_board')
     exclude_from_sim = serializers.SerializerMethodField('get_exclude_from_sim')
+    name = serializers.SerializerMethodField('get_name')
 
     fields = serializers.SerializerMethodField('get_kicad_fields')
+
+    def get_name(self, part):
+        # Use helper to reduce duplication
+        return _determine_part_name(self, part)
 
     def get_kicad_category(self, part):
         """For the provided part instance, find the associated SelectedCategory instance.
@@ -444,6 +464,12 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
 
     description = serializers.SerializerMethodField('get_description')
     stock = serializers.SerializerMethodField('get_stock')
+
+    name = serializers.SerializerMethodField('get_name')
+
+    def get_name(self, part):
+        # Use helper to reduce duplication
+        return _determine_part_name(self, part)
 
     def get_stock(self, part):
         """Custom name function.
