@@ -29,7 +29,7 @@ from .version import KICAD_PLUGIN_VERSION
 try:
     from plugin.base.integration.mixins import SettingsContentMixin
 except ImportError:
-    class SettingsContentMixin: # noqa: F811
+    class SettingsContentMixin:  # noqa: F811
         """Dummy mixin class for backwards compatibility.
 
         With the move the modern UI, this mixin is no longer used.
