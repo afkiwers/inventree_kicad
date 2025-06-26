@@ -285,7 +285,6 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 'visible': self.plugin.get_setting('KICAD_INCLUDE_IPN', 'False')
             }
 
-
         # Find the value parameter value associated with this part instance
         template_id = self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER', None)
         kicad_local_field_visibility = None
@@ -296,19 +295,18 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             # make lower case and strip
             kicad_local_field_visibility = [field.strip().lower() for field in kicad_local_field_visibility]
 
-        except:
-            pass # ignore if there are any issues
+        except AttributeError:
+            pass  # ignore if there are any issues
 
 
         # load the global visibility settings if available and valid
         try:
-            kicad_global_field_visibility = self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER_GLOBAL',
-                                                                    None).split(',')
+            kicad_global_field_visibility = self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER_GLOBAL',  None).split(',')
 
             kicad_global_field_visibility = [field.strip().lower() for field in kicad_global_field_visibility]
-        except:
-            pass  # ignore if there are any issues
 
+        except AttributeError:
+            pass  # ignore if there are any issues
 
         for parameter in part.parameters.all():
             # Exclude any which have already been used for default KiCad fields
@@ -322,7 +320,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             is_visible = 'True' if parameter.template.name.lower().strip() in kicad_global_field_visibility else 'False'
 
             # Check if there is a local override
-            if kicad_local_field_visibility != None:
+            if kicad_local_field_visibility is not None:
                 is_visible = 'True' if parameter.template.name.lower().strip() in kicad_local_field_visibility else 'False'
 
             fields[parameter.template.name] = {
