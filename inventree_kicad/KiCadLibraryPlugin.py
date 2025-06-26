@@ -29,21 +29,9 @@ from .version import KICAD_PLUGIN_VERSION
 try:
     from plugin.base.integration.mixins import SettingsContentMixin
 except ImportError:
-    class SettingsContentMixin:
+    class SettingsContentMixin: # noqa: F811
         """Dummy mixin class for backwards compatibility.
 
-        With the move the modern UI, this mixin is no longer used.
-        It is included here to maintain compatibility with older versions of InvenTree.
-        """
-        ...
-
-
-try:
-    from plugin.base.integration.mixins import SettingsContentMixin
-except ImportError:
-    class SettingsContentMixin:
-        """Dummy mixin class for backwards compatibility.
-        
         With the move the modern UI, this mixin is no longer used.
         It is included here to maintain compatibility with older versions of InvenTree.
         """
