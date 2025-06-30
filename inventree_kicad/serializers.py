@@ -16,6 +16,7 @@ from .models import SelectedCategory, FootprintParameterMapping
 
 logger = logging.getLogger('inventree')
 
+
 def _determine_part_name(self, part):
     """Resolve part name for KiCad based on plugin setting.
 
