@@ -439,7 +439,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             },
         }
 
-        if self.plugin.get_setting('KICAD_ENABLE_MANUFACTURER_DATA', 'False') == 'True':
+        if self.plugin.get_setting('KICAD_ENABLE_MANUFACTURER_DATA', False) == True:
             return kicad_default_fields | self.get_supplier_part_fields(part) | self.get_custom_fields(part, list(kicad_default_fields.keys()))
         else:
             return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
