@@ -9,6 +9,7 @@ from rest_framework.reverse import reverse_lazy
 from InvenTree.helpers_model import construct_absolute_url
 from part.filters import annotate_total_stock
 from part.models import Part, PartCategory, PartParameter
+from company.models import ManufacturerPart, SupplierPart
 from InvenTree.helpers import str2bool, decimal2string
 
 from .models import SelectedCategory, FootprintParameterMapping
@@ -344,6 +345,69 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             }
 
         return fields
+    
+    def get_supplier_part_fields(self, part):
+        """Return a set of fields for supplier and manufacturer information to be used in the KiCad symbol library"""
+
+        manufacturer_parts = ManufacturerPart.objects.filter(part=part.pk).prefetch_related('supplier_parts')
+
+        supplier_parts_used = set()
+        kicad_fields = {}
+        for mp_idx, mp_part in enumerate(manufacturer_parts):
+
+            # get manufaturer and MPN
+            manufacturer_name = mp_part.manufacturer.name if mp_part and mp_part.manufacturer else ''
+            manufacturer_mpn = mp_part.MPN if mp_part else ''
+
+            # create fields for manufacturer and MPN
+            kicad_fields[f'Manufacturer_{mp_idx + 1}'] = {
+                'value': manufacturer_name,
+                'visible': 'False'
+            }
+            kicad_fields[f'MPN_{mp_idx + 1}'] = {
+                'value': manufacturer_mpn,
+                'visible': 'False'
+            }
+
+            for sp_idx, sp_part in enumerate(mp_part.supplier_parts.all()):
+                supplier_parts_used.add(sp_part)
+
+                # get supplier and SKU
+                supplier_name = sp_part.supplier.name if sp_part and sp_part.supplier else ''
+                supplier_sku = sp_part.SKU if sp_part else ''
+                
+                # create fields for supplier and SKU
+                kicad_fields[f'Supplier_{mp_idx + 1}_{sp_idx + 1}'] = {
+                    'value': supplier_name,
+                    'visible': 'False'
+                }
+                kicad_fields[f'SPN_{mp_idx + 1}_{sp_idx + 1}'] = {
+                    'value': supplier_sku,
+                    'visible': 'False'
+                }
+
+        # add any supplier parts that are not associated with a manufacturer part
+        for sp_idx, sp_part in enumerate(
+            SupplierPart.objects.filter(part__pk=part.pk)
+        ):
+            if sp_part in supplier_parts_used:
+                continue
+
+            supplier_parts_used.add(sp_part)
+
+            supplier_name = sp_part.supplier.name if sp_part and sp_part.supplier else ''
+            supplier_sku = sp_part.SKU if sp_part else ''
+
+            kicad_fields[f'Supplier_{sp_idx + 1}'] = {
+                'value': supplier_name,
+                'visible': 'False'
+            }
+            kicad_fields[f'SPN_{sp_idx + 1}'] = {
+                'value': supplier_sku,
+                'visible': 'False'
+            }
+               
+        return kicad_fields
 
     def get_kicad_fields(self, part):
         """Return a set of fields to be used in the KiCad symbol library"""
@@ -375,7 +439,10 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             },
         }
 
-        return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
+        if self.plugin.get_setting('KICAD_ENABLE_MANUFACTURER_DATA', 'False') == 'True':
+            return kicad_default_fields | self.get_supplier_part_fields(part) | self.get_custom_fields(part, list(kicad_default_fields.keys()))
+        else:
+            return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
 
     def get_exclude_from_bom(self, part):
         """Return whether or not the part should be excluded from the bom.

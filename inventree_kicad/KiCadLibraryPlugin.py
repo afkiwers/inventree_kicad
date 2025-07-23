@@ -168,6 +168,12 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'description': _('This identifier specifies what key the import tool looks for to get the part ID'),
             'default': "InvenTree"
         },
+        'KICAD_ENABLE_MANUFACTURER_DATA': {
+            'name': _('Add Manufacturer Data to KiCad parts'),
+            'description': _('When activated, the supplier and manufacturer data will be added to the KiCad parts.'),
+            'validator': bool,
+            'default': False,
+        },
     }
 
     def get_settings_content(self, request):
