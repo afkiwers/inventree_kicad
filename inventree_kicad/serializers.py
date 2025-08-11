@@ -270,7 +270,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOM_PARAMETER', None),
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOARD_PARAMETER', None),
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_SIM_PARAMETER', None),
-            self.plugin.get_setting('KICAD_VALUE_PARAMETER ', None),
+            self.plugin.get_setting('KICAD_VALUE_PARAMETER', None),
             self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER', None),
         ]
 
