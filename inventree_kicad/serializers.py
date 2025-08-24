@@ -239,7 +239,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         """
 
         # Fallback to the part name
-        value = part.full_name
+        value = part.name
 
         # Find the value parameter value associated with this part instance
         template_id = self.plugin.get_setting('KICAD_VALUE_PARAMETER', None)
@@ -247,7 +247,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         value = self.get_parameter_value(part, template_id, backup_value=value)
 
         # it looks like there's not value parameter specified
-        if value == part.full_name:
+        if value == part.name:
             # Fallback to the "default" value parameter for the associated SelectedCategory instance
             if kicad_category := self.get_kicad_category(part):
                 value_parameter = kicad_category.default_value_parameter_template
