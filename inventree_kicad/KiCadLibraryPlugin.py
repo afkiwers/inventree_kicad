@@ -168,6 +168,12 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'description': _('This identifier specifies what key the import tool looks for to get the part ID'),
             'default': "InvenTree"
         },
+        'KICAD_INCLUDE_UNITS_IN_PARAMETERS': {
+            'name': _('Include units in parameters'),
+            'description': _('When activated, if a parameter has units it will be included'),
+            'validator': bool,
+            'default': True,
+        },
     }
 
     def get_settings_content(self, request):

@@ -323,6 +323,9 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         except AttributeError:
             pass  # ignore if there are any issues
 
+        # Check if we should include the parameter units in custom parameters
+        kicad_include_units_in_parameters = self.plugin.get_setting('KICAD_INCLUDE_UNITS_IN_PARAMETERS', True)
+
         for parameter in part.parameters.all():
             # Exclude any which have already been used for default KiCad fields
             if str(parameter.template.pk) in excluded_templates:
@@ -338,8 +341,12 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             if kicad_local_field_visibility is not None:
                 is_visible = 'True' if parameter.template.name.lower().strip() in kicad_local_field_visibility else 'False'
 
+            units = ""
+            if kicad_include_units_in_parameters:
+                units = f" {parameter.units}"
+
             fields[parameter.template.name] = {
-                "value": f'{parameter.data} {parameter.units}'.strip(),
+                "value": f'{parameter.data}{units}'.strip(),
                 "visible": is_visible
             }
 
