@@ -1,13 +1,14 @@
 import logging
 
 from django.utils.translation import gettext_lazy as _
+from django.db.models import ExpressionWrapper, F, DecimalField
 
 from rest_framework import serializers
 from rest_framework.reverse import reverse_lazy
 
 
 from InvenTree.helpers_model import construct_absolute_url
-from part.filters import annotate_total_stock
+from part.filters import annotate_total_stock, annotate_sales_order_allocations, annotate_build_order_allocations, annotate_variant_quantity, variant_stock_query
 from part.models import Part, PartCategory, PartParameter
 from InvenTree.helpers import str2bool, decimal2string
 
@@ -480,7 +481,7 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
         """
 
         # In-stock quantity should be annotated to the queryset
-        stock_count = getattr(part, 'in_stock', 0)
+        stock_count = getattr(part, 'unallocated_stock', 0)
 
         try:
             stock_count = decimal2string(stock_count)
@@ -488,7 +489,7 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
             logger.exception("Failed to format stock count: %s", e)
 
         return stock_count
-    
+
     def get_description(self, part):
         """Custom name function.
 
@@ -498,14 +499,14 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
 
         if not hasattr(self, 'enable_stock_count'):
             self.enable_stock_count = str2bool(self.plugin.get_setting('KICAD_ENABLE_STOCK_COUNT', False))
-        
+
         if not hasattr(self, 'stock_count_format'):
             self.stock_count_format = self.plugin.get_setting("KICAD_ENABLE_STOCK_COUNT_FORMAT", False)
 
         description = part.description
 
         # In-stock quantity should be annotated to the queryset
-        stock_count = getattr(part, 'in_stock', 0)
+        stock_count = getattr(part, 'unallocated_stock', 0)
 
         if self.enable_stock_count:
             try:
@@ -519,8 +520,31 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
     def annotate_queryset(queryset):
         """Add extra annotations to the queryset."""
 
+        # Annotate with the total variant stock quantity
+        variant_query = variant_stock_query()
         queryset = queryset.annotate(
             in_stock=annotate_total_stock(),
+            allocated_to_sales_orders=annotate_sales_order_allocations(),
+            allocated_to_build_orders=annotate_build_order_allocations(),
+            variant_stock=annotate_variant_quantity(variant_query, reference='quantity')
+        )
+
+        queryset = queryset.annotate(
+            total_in_stock=ExpressionWrapper(
+                F('in_stock') + F('variant_stock'),
+                output_field=DecimalField()
+            )
+        )
+
+        # Annotate with the total 'available stock' quantity
+        # This is the current stock, minus any allocations
+        queryset = queryset.annotate(
+            unallocated_stock=ExpressionWrapper(
+                F('total_in_stock')
+                - F('allocated_to_sales_orders')
+                - F('allocated_to_build_orders'),
+                output_field=DecimalField(),
+            )
         )
 
         return queryset
