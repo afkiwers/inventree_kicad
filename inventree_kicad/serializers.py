@@ -2,6 +2,7 @@ import logging
 
 from django.utils.translation import gettext_lazy as _
 from django.db.models import ExpressionWrapper, F, DecimalField
+from django.db.models.functions import Greatest
 
 from rest_framework import serializers
 from rest_framework.reverse import reverse_lazy
@@ -539,10 +540,14 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
         # Annotate with the total 'available stock' quantity
         # This is the current stock, minus any allocations
         queryset = queryset.annotate(
-            unallocated_stock=ExpressionWrapper(
-                F('total_in_stock')
-                - F('allocated_to_sales_orders')
-                - F('allocated_to_build_orders'),
+            unallocated_stock=Greatest(
+                ExpressionWrapper(
+                    F('total_in_stock')
+                    - F('allocated_to_sales_orders')
+                    - F('allocated_to_build_orders'),
+                    output_field=DecimalField(),
+                ),
+                0,
                 output_field=DecimalField(),
             )
         )
