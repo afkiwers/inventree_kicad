@@ -173,6 +173,11 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'description': _('When activated, the supplier and manufacturer data will be added to the KiCad parts.'),
             'validator': bool,
             'default': False,
+        'KICAD_INCLUDE_UNITS_IN_PARAMETERS': {
+            'name': _('Include units in parameters'),
+            'description': _('When activated, if a parameter has units it will be included'),
+            'validator': bool,
+            'default': True,
         },
     }
 

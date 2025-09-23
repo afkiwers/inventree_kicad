@@ -18,13 +18,8 @@ from .models import SelectedCategory, FootprintParameterMapping
 logger = logging.getLogger('inventree')
 
 
-def _determine_part_name(self, part):
-    """Resolve part name for KiCad based on plugin setting.
-
-    Returns `part.IPN` or `part.name` based on `KICAD_USE_IPN_AS_NAME`.
-    """
-
-    use_ipn = str2bool(self.plugin.get_setting('KICAD_USE_IPN_AS_NAME', False))
+def _determine_part_name(part, use_ipn: bool = False) -> str:
+    """Resolve part name for KiCad based on plugin setting."""
 
     return part.IPN or part.name if use_ipn else part.name
 
@@ -72,7 +67,12 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
     def get_name(self, part):
         # Use helper to reduce duplication
-        return _determine_part_name(self, part)
+
+        # Cache the 'use_ipn' setting
+        if not hasattr(self, 'use_ipn'):
+            self.use_ipn = str2bool(self.plugin.get_setting('KICAD_USE_IPN_AS_NAME', False))
+
+        return _determine_part_name(part, self.use_ipn)
 
     def get_kicad_category(self, part):
         """For the provided part instance, find the associated SelectedCategory instance.
@@ -240,7 +240,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         """
 
         # Fallback to the part name
-        value = part.full_name
+        value = part.name
 
         # Find the value parameter value associated with this part instance
         template_id = self.plugin.get_setting('KICAD_VALUE_PARAMETER', None)
@@ -248,7 +248,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         value = self.get_parameter_value(part, template_id, backup_value=value)
 
         # it looks like there's not value parameter specified
-        if value == part.full_name:
+        if value == part.name:
             # Fallback to the "default" value parameter for the associated SelectedCategory instance
             if kicad_category := self.get_kicad_category(part):
                 value_parameter = kicad_category.default_value_parameter_template
@@ -271,7 +271,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOM_PARAMETER', None),
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOARD_PARAMETER', None),
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_SIM_PARAMETER', None),
-            self.plugin.get_setting('KICAD_VALUE_PARAMETER ', None),
+            self.plugin.get_setting('KICAD_VALUE_PARAMETER', None),
             self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER', None),
         ]
 
@@ -324,6 +324,9 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         except AttributeError:
             pass  # ignore if there are any issues
 
+        # Check if we should include the parameter units in custom parameters
+        kicad_include_units_in_parameters = self.plugin.get_setting('KICAD_INCLUDE_UNITS_IN_PARAMETERS', True)
+
         for parameter in part.parameters.all():
             # Exclude any which have already been used for default KiCad fields
             if str(parameter.template.pk) in excluded_templates:
@@ -339,8 +342,12 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             if kicad_local_field_visibility is not None:
                 is_visible = 'True' if parameter.template.name.lower().strip() in kicad_local_field_visibility else 'False'
 
+            units = ""
+            if kicad_include_units_in_parameters:
+                units = f" {parameter.units}"
+
             fields[parameter.template.name] = {
-                "value": f'{parameter.data} {parameter.units}'.strip(),
+                "value": f'{parameter.data}{units}'.strip(),
                 "visible": is_visible
             }
 
@@ -532,7 +539,12 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
 
     def get_name(self, part):
         # Use helper to reduce duplication
-        return _determine_part_name(self, part)
+
+        # Cache the 'use_ipn' setting
+        if not hasattr(self, 'use_ipn'):
+            self.use_ipn = str2bool(self.plugin.get_setting('KICAD_USE_IPN_AS_NAME', False))
+
+        return _determine_part_name(part, self.use_ipn)
 
     def get_stock(self, part):
         """Custom name function.
