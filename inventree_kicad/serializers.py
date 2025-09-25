@@ -616,9 +616,7 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
         queryset = queryset.annotate(
             unallocated_stock=Greatest(
                 ExpressionWrapper(
-                    F('total_in_stock') -
-                    F('allocated_to_sales_orders') -
-                    F('allocated_to_build_orders'),
+                    F('total_in_stock') - F('allocated_to_sales_orders') - F('allocated_to_build_orders'),
                     output_field=DecimalField(),
                 ),
                 0,
