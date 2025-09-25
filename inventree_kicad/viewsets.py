@@ -181,6 +181,9 @@ class PartsPreviewList(generics.ListAPIView):
             else:
                 queryset = queryset.filter(category=category)
 
+        if str2bool(plugin.get_setting('KICAD_HIDE_INACTIVE_PARTS', True)):
+            queryset = queryset.filter(active=True)
+
         queryset = serializers.KicadPreviewPartSerializer.annotate_queryset(queryset)
 
         return queryset

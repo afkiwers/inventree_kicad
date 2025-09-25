@@ -174,6 +174,12 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'validator': bool,
             'default': True,
         },
+        'KICAD_HIDE_INACTIVE_PARTS': {
+            'name': _('Hide Inactive Parts'),
+            'description': _('When activated, inactive parts will be hidden from the KiCad parts preview list'),
+            'validator': bool,
+            'default': True,
+        },
     }
 
     def get_settings_content(self, request):
