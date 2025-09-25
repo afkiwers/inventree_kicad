@@ -186,6 +186,12 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'validator': bool,
             'default': True,
         },
+        'KICAD_HIDE_TEMPLATE_PARTS': {
+            'name': _('Hide Template Parts'),
+            'description': _('When activated, template parts will be hidden from the KiCad parts preview list'),
+            'validator': bool,
+            'default': False,
+        },
     }
 
     def get_settings_content(self, request):
