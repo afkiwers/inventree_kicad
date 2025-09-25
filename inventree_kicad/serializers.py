@@ -448,7 +448,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             },
         }
 
-        if self.plugin.get_setting('KICAD_ENABLE_MANUFACTURER_DATA', False) == True:
+        if self.plugin.get_setting('KICAD_ENABLE_MANUFACTURER_DATA', False):
             return kicad_default_fields | self.get_supplier_part_fields(part) | self.get_custom_fields(part, list(kicad_default_fields.keys()))
         else:
             return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
@@ -616,9 +616,9 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
         queryset = queryset.annotate(
             unallocated_stock=Greatest(
                 ExpressionWrapper(
-                    F('total_in_stock')
-                    - F('allocated_to_sales_orders')
-                    - F('allocated_to_build_orders'),
+                    F('total_in_stock') -
+                    F('allocated_to_sales_orders') -
+                    F('allocated_to_build_orders'),
                     output_field=DecimalField(),
                 ),
                 0,

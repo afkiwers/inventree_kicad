@@ -136,7 +136,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'model': 'part.partparametertemplate',
         },
         'KICAD_META_DATA_IMPORT_ADD_DATASHEET': {
-            'name': _('[KiCad Metadata Import] Add datasheet if URL is valid'),
+            'name': _('[KiCad Metadata Import] Add Datasheet if URL is Valid'),
             'description': _(
                 'When activated, the plugin will add the datasheet URL (comment will be \'datasheet\') to the '
                 'attachments.'),
@@ -144,7 +144,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'default': False,
         },
         'KICAD_USE_IPN_AS_NAME': {
-            'name': _('Use IPN instead of Name'),
+            'name': _('Use IPN Instead of Name'),
             'description': _('When True, the plugin will use IPN instead of Name'),
             'validator': bool,
             'default': False,
@@ -169,12 +169,13 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'default': "InvenTree"
         },
         'KICAD_ENABLE_MANUFACTURER_DATA': {
-            'name': _('Add Manufacturer Data to KiCad parts'),
+            'name': _('Add Manufacturer Data to KiCad Parts'),
             'description': _('When activated, the supplier and manufacturer data will be added to the KiCad parts.'),
             'validator': bool,
             'default': False,
+        },
         'KICAD_INCLUDE_UNITS_IN_PARAMETERS': {
-            'name': _('Include units in parameters'),
+            'name': _('Include Units in Parameters'),
             'description': _('When activated, if a parameter has units it will be included'),
             'validator': bool,
             'default': True,
