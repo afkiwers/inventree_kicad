@@ -13,6 +13,8 @@ from InvenTree.helpers import str2bool, decimal2string
 
 from .models import SelectedCategory, FootprintParameterMapping
 
+from types import SimpleNamespace
+
 
 logger = logging.getLogger('inventree')
 
@@ -83,7 +85,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         if hasattr(self, 'kicad_category'):
             return self.kicad_category
 
-        # If the selcted part does not have a category, return None
+        # If the selected part does not have a category, return None
         if not part.category:
             return None
 
@@ -488,7 +490,19 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
 
         if self.enable_stock_count:
             try:
-                description = self.stock_count_format.format(part.description, decimal2string(stock_count))
+                part_ = SimpleNamespace(
+                        name=part.name,
+                        IPN=part.IPN,
+                        description=part.description,
+                        stock=stock_count,
+                        revision=part.revision,
+                        used_in=0
+                        )
+
+                if hasattr(part, "get_used_in"):
+                    part_.used_in = len(part.get_used_in())
+
+                description = self.stock_count_format.format(part.description, decimal2string(stock_count), part=part_)
             except Exception as e:
                 logger.exception("Failed to format stock count: %s", e)
 
