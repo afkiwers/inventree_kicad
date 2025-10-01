@@ -366,7 +366,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         kicad_fields = {}
         for mp_idx, mp_part in enumerate(manufacturer_parts):
 
-            # get manufaturer and MPN
+            # get manufacturer and MPN
             manufacturer_name = mp_part.manufacturer.name if mp_part and mp_part.manufacturer else ''
             manufacturer_mpn = mp_part.MPN if mp_part else ''
 
@@ -588,13 +588,13 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
         if self.enable_stock_count:
             try:
                 part_ = SimpleNamespace(
-                        name=part.name,
-                        IPN=part.IPN,
-                        description=part.description,
-                        stock=stock_count,
-                        revision=part.revision,
-                        used_in=0
-                        )
+                    name=part.name,
+                    IPN=part.IPN,
+                    description=part.description,
+                    stock=stock_count,
+                    revision=part.revision,
+                    used_in=0
+                )
 
                 if hasattr(part, "get_used_in"):
                     part_.used_in = len(part.get_used_in())
