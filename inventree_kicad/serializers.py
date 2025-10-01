@@ -1,14 +1,17 @@
 import logging
 
 from django.utils.translation import gettext_lazy as _
+from django.db.models import ExpressionWrapper, F, DecimalField
+from django.db.models.functions import Greatest
 
 from rest_framework import serializers
 from rest_framework.reverse import reverse_lazy
 
 
 from InvenTree.helpers_model import construct_absolute_url
-from part.filters import annotate_total_stock
+from part.filters import annotate_total_stock, annotate_sales_order_allocations, annotate_build_order_allocations, annotate_variant_quantity, variant_stock_query
 from part.models import Part, PartCategory, PartParameter
+from company.models import ManufacturerPart, SupplierPart
 from InvenTree.helpers import str2bool, decimal2string
 
 from .models import SelectedCategory, FootprintParameterMapping
@@ -19,13 +22,8 @@ from types import SimpleNamespace
 logger = logging.getLogger('inventree')
 
 
-def _determine_part_name(self, part):
-    """Resolve part name for KiCad based on plugin setting.
-
-    Returns `part.IPN` or `part.name` based on `KICAD_USE_IPN_AS_NAME`.
-    """
-
-    use_ipn = str2bool(self.plugin.get_setting('KICAD_USE_IPN_AS_NAME', False))
+def _determine_part_name(part, use_ipn: bool = False) -> str:
+    """Resolve part name for KiCad based on plugin setting."""
 
     return part.IPN or part.name if use_ipn else part.name
 
@@ -73,7 +71,12 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
     def get_name(self, part):
         # Use helper to reduce duplication
-        return _determine_part_name(self, part)
+
+        # Cache the 'use_ipn' setting
+        if not hasattr(self, 'use_ipn'):
+            self.use_ipn = str2bool(self.plugin.get_setting('KICAD_USE_IPN_AS_NAME', False))
+
+        return _determine_part_name(part, self.use_ipn)
 
     def get_kicad_category(self, part):
         """For the provided part instance, find the associated SelectedCategory instance.
@@ -241,7 +244,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         """
 
         # Fallback to the part name
-        value = part.full_name
+        value = part.name
 
         # Find the value parameter value associated with this part instance
         template_id = self.plugin.get_setting('KICAD_VALUE_PARAMETER', None)
@@ -249,7 +252,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         value = self.get_parameter_value(part, template_id, backup_value=value)
 
         # it looks like there's not value parameter specified
-        if value == part.full_name:
+        if value == part.name:
             # Fallback to the "default" value parameter for the associated SelectedCategory instance
             if kicad_category := self.get_kicad_category(part):
                 value_parameter = kicad_category.default_value_parameter_template
@@ -272,8 +275,8 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOM_PARAMETER', None),
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOARD_PARAMETER', None),
             self.plugin.get_setting('KICAD_EXCLUDE_FROM_SIM_PARAMETER', None),
-            self.plugin.get_setting('KICAD_VALUE_PARAMETER ', None),
-            self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER', None)
+            self.plugin.get_setting('KICAD_VALUE_PARAMETER', None),
+            self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER', None),
         ]
 
         # exclude default value parameter template. This will be used for the actual value
@@ -303,15 +306,30 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 'visible': self.plugin.get_setting('KICAD_INCLUDE_IPN', 'False')
             }
 
-        # Check if a parameter for setting visisble fields exists
-        ki_visible_fields_param = part.parameters.filter(
-            template__name=self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER', 'Kicad_Visible_Fields')
-        ).first()
-        ki_visible_fields = []
+        # Find the value parameter value associated with this part instance
+        template_id = self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER', None)
+        kicad_local_field_visibility = None
+        try:
+            # check if local parameter set, if so extract fields that need displaying in KiCad
+            kicad_local_field_visibility = self.get_parameter_value(part, template_id, None).split(',')
 
-        if ki_visible_fields_param:
-            ki_visible_fields = ki_visible_fields_param.data.split(',')
-            ki_visible_fields = [field.strip().lower() for field in ki_visible_fields]
+            # make lower case and strip
+            kicad_local_field_visibility = [field.strip().lower() for field in kicad_local_field_visibility]
+
+        except AttributeError:
+            pass  # ignore if there are any issues
+
+        # load the global visibility settings if available and valid
+        try:
+            kicad_global_field_visibility = self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER_GLOBAL', None).split(',')
+
+            kicad_global_field_visibility = [field.strip().lower() for field in kicad_global_field_visibility]
+
+        except AttributeError:
+            pass  # ignore if there are any issues
+
+        # Check if we should include the parameter units in custom parameters
+        kicad_include_units_in_parameters = self.plugin.get_setting('KICAD_INCLUDE_UNITS_IN_PARAMETERS', True)
 
         for parameter in part.parameters.all():
             # Exclude any which have already been used for default KiCad fields
@@ -322,14 +340,85 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             if parameter.template.name.lower() in excluded_field_names:
                 continue
 
-            is_visible = 'True' if parameter.template.name.lower().strip() in ki_visible_fields else 'False'
+            is_visible = 'True' if parameter.template.name.lower().strip() in kicad_global_field_visibility else 'False'
+
+            # Check if there is a local override
+            if kicad_local_field_visibility is not None:
+                is_visible = 'True' if parameter.template.name.lower().strip() in kicad_local_field_visibility else 'False'
+
+            units = ""
+            if kicad_include_units_in_parameters:
+                units = f" {parameter.units}"
 
             fields[parameter.template.name] = {
-                "value": parameter.data,
+                "value": f'{parameter.data}{units}'.strip(),
                 "visible": is_visible
             }
 
         return fields
+    
+    def get_supplier_part_fields(self, part):
+        """Return a set of fields for supplier and manufacturer information to be used in the KiCad symbol library"""
+
+        manufacturer_parts = ManufacturerPart.objects.filter(part=part.pk).prefetch_related('supplier_parts')
+
+        supplier_parts_used = set()
+        kicad_fields = {}
+        for mp_idx, mp_part in enumerate(manufacturer_parts):
+
+            # get manufaturer and MPN
+            manufacturer_name = mp_part.manufacturer.name if mp_part and mp_part.manufacturer else ''
+            manufacturer_mpn = mp_part.MPN if mp_part else ''
+
+            # create fields for manufacturer and MPN
+            kicad_fields[f'Manufacturer_{mp_idx + 1}'] = {
+                'value': manufacturer_name,
+                'visible': 'False'
+            }
+            kicad_fields[f'MPN_{mp_idx + 1}'] = {
+                'value': manufacturer_mpn,
+                'visible': 'False'
+            }
+
+            for sp_idx, sp_part in enumerate(mp_part.supplier_parts.all()):
+                supplier_parts_used.add(sp_part)
+
+                # get supplier and SKU
+                supplier_name = sp_part.supplier.name if sp_part and sp_part.supplier else ''
+                supplier_sku = sp_part.SKU if sp_part else ''
+                
+                # create fields for supplier and SKU
+                kicad_fields[f'Supplier_{mp_idx + 1}_{sp_idx + 1}'] = {
+                    'value': supplier_name,
+                    'visible': 'False'
+                }
+                kicad_fields[f'SPN_{mp_idx + 1}_{sp_idx + 1}'] = {
+                    'value': supplier_sku,
+                    'visible': 'False'
+                }
+
+        # add any supplier parts that are not associated with a manufacturer part
+        for sp_idx, sp_part in enumerate(
+            SupplierPart.objects.filter(part__pk=part.pk)
+        ):
+            if sp_part in supplier_parts_used:
+                continue
+
+            supplier_parts_used.add(sp_part)
+
+            supplier_name = sp_part.supplier.name if sp_part and sp_part.supplier else ''
+            supplier_sku = sp_part.SKU if sp_part else ''
+
+            kicad_fields[f'Supplier_{sp_idx + 1}'] = {
+                'value': supplier_name,
+                'visible': 'False'
+            }
+            kicad_fields[f'SPN_{sp_idx + 1}'] = {
+                'value': supplier_sku,
+                'visible': 'False'
+            }
+               
+        return kicad_fields
 
     def get_kicad_fields(self, part):
         """Return a set of fields to be used in the KiCad symbol library"""
@@ -361,7 +450,10 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             },
         }
 
-        return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
+        if self.plugin.get_setting('KICAD_ENABLE_MANUFACTURER_DATA', False):
+            return kicad_default_fields | self.get_supplier_part_fields(part) | self.get_custom_fields(part, list(kicad_default_fields.keys()))
+        else:
+            return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
 
     def get_exclude_from_bom(self, part):
         """Return whether or not the part should be excluded from the bom.
@@ -451,7 +543,12 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
 
     def get_name(self, part):
         # Use helper to reduce duplication
-        return _determine_part_name(self, part)
+
+        # Cache the 'use_ipn' setting
+        if not hasattr(self, 'use_ipn'):
+            self.use_ipn = str2bool(self.plugin.get_setting('KICAD_USE_IPN_AS_NAME', False))
+
+        return _determine_part_name(part, self.use_ipn)
 
     def get_stock(self, part):
         """Custom name function.
@@ -461,7 +558,7 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
         """
 
         # In-stock quantity should be annotated to the queryset
-        stock_count = getattr(part, 'in_stock', 0)
+        stock_count = getattr(part, 'unallocated_stock', 0)
 
         try:
             stock_count = decimal2string(stock_count)
@@ -469,7 +566,7 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
             logger.exception("Failed to format stock count: %s", e)
 
         return stock_count
-    
+
     def get_description(self, part):
         """Custom name function.
 
@@ -479,14 +576,14 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
 
         if not hasattr(self, 'enable_stock_count'):
             self.enable_stock_count = str2bool(self.plugin.get_setting('KICAD_ENABLE_STOCK_COUNT', False))
-        
+
         if not hasattr(self, 'stock_count_format'):
             self.stock_count_format = self.plugin.get_setting("KICAD_ENABLE_STOCK_COUNT_FORMAT", False)
 
         description = part.description
 
         # In-stock quantity should be annotated to the queryset
-        stock_count = getattr(part, 'in_stock', 0)
+        stock_count = getattr(part, 'unallocated_stock', 0)
 
         if self.enable_stock_count:
             try:
@@ -512,8 +609,33 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
     def annotate_queryset(queryset):
         """Add extra annotations to the queryset."""
 
+        # Annotate with the total variant stock quantity
+        variant_query = variant_stock_query()
         queryset = queryset.annotate(
             in_stock=annotate_total_stock(),
+            allocated_to_sales_orders=annotate_sales_order_allocations(),
+            allocated_to_build_orders=annotate_build_order_allocations(),
+            variant_stock=annotate_variant_quantity(variant_query, reference='quantity')
+        )
+
+        queryset = queryset.annotate(
+            total_in_stock=ExpressionWrapper(
+                F('in_stock') + F('variant_stock'),
+                output_field=DecimalField()
+            )
+        )
+
+        # Annotate with the total 'available stock' quantity
+        # This is the current stock, minus any allocations
+        queryset = queryset.annotate(
+            unallocated_stock=Greatest(
+                ExpressionWrapper(
+                    F('total_in_stock') - F('allocated_to_sales_orders') - F('allocated_to_build_orders'),
+                    output_field=DecimalField(),
+                ),
+                0,
+                output_field=DecimalField(),
+            )
         )
 
         return queryset

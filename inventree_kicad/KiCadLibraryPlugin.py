@@ -19,12 +19,23 @@ from InvenTree.helpers import str2bool
 from common.notifications import logger
 from part.models import Part, PartParameterTemplate, PartParameter
 from plugin import InvenTreePlugin
-from plugin.base.integration.mixins import SettingsContentMixin
+
 from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin
 import xml.etree.ElementTree as elementTree
 
 from .models import ProgressIndicator
 from .version import KICAD_PLUGIN_VERSION
+
+try:
+    from plugin.base.integration.mixins import SettingsContentMixin
+except ImportError:
+    class SettingsContentMixin:  # noqa: F811
+        """Dummy mixin class for backwards compatibility.
+
+        With the move the modern UI, this mixin is no longer used.
+        It is included here to maintain compatibility with older versions of InvenTree.
+        """
+        ...
 
 
 class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixin, InvenTreePlugin):
@@ -100,7 +111,12 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
         },
         'KICAD_FIELD_VISIBILITY_PARAMETER': {
             'name': _('Field Visibility Parameter'),
-            'description': _('The part parameter to use for setting visibility of part parameters.'),
+            'description': _('Set field visibility in KiCad using this parameter. Enter comma-separated InvenTree parameter names to show per part.'),
+            'model': 'part.partparametertemplate',
+        },
+        'KICAD_FIELD_VISIBILITY_PARAMETER_GLOBAL': {
+            'name': _('GLobal Field Visibility Parameter'),
+            'description': _('Global version of KICAD_FIELD_VISIBILITY_PARAMETER; overridden if set locally.'),
             'default': "Kicad_Visible_Fields"
         },
         'KICAD_EXCLUDE_FROM_BOM_PARAMETER': {
@@ -120,7 +136,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'model': 'part.partparametertemplate',
         },
         'KICAD_META_DATA_IMPORT_ADD_DATASHEET': {
-            'name': _('[KiCad Metadata Import] Add datasheet if URL is valid'),
+            'name': _('[KiCad Metadata Import] Add Datasheet if URL is Valid'),
             'description': _(
                 'When activated, the plugin will add the datasheet URL (comment will be \'datasheet\') to the '
                 'attachments.'),
@@ -128,7 +144,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'default': False,
         },
         'KICAD_USE_IPN_AS_NAME': {
-            'name': _('Use IPN instead of Name'),
+            'name': _('Use IPN Instead of Name'),
             'description': _('When True, the plugin will use IPN instead of Name'),
             'validator': bool,
             'default': False,
@@ -151,6 +167,30 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'name': _('[KiCad Metadata Import] Inventree Part ID Identifier'),
             'description': _('This identifier specifies what key the import tool looks for to get the part ID'),
             'default': "InvenTree"
+        },
+        'KICAD_ENABLE_MANUFACTURER_DATA': {
+            'name': _('Add Manufacturer Data to KiCad Parts'),
+            'description': _('When activated, the supplier and manufacturer data will be added to the KiCad parts.'),
+            'validator': bool,
+            'default': False,
+        },
+        'KICAD_INCLUDE_UNITS_IN_PARAMETERS': {
+            'name': _('Include Units in Parameters'),
+            'description': _('When activated, if a parameter has units it will be included'),
+            'validator': bool,
+            'default': True,
+        },
+        'KICAD_HIDE_INACTIVE_PARTS': {
+            'name': _('Hide Inactive Parts'),
+            'description': _('When activated, inactive parts will be hidden from the KiCad parts preview list'),
+            'validator': bool,
+            'default': True,
+        },
+        'KICAD_HIDE_TEMPLATE_PARTS': {
+            'name': _('Hide Template Parts'),
+            'description': _('When activated, template parts will be hidden from the KiCad parts preview list'),
+            'validator': bool,
+            'default': False,
         },
     }
 
