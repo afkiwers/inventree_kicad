@@ -284,13 +284,9 @@ In addition to `{0}` and `{1}`, an object named `part` is available with the fol
 **Note:** Both `part.stock` and `part.used_in` are integers, not strings.  
 When formatting these values, it’s recommended to include format specifiers to handle decimals gracefully.  
 
-For example: `{part.stock:.0f}`. Here, (`:.0f`) formats the number as a floating point, with no padding, and zero digits trailing the decimal point.
+For example: `{part.stock:.0f}`. Here, (`:.0f`) formats the number as a floating point, with no padding, and zero digits trailing the decimal point. For more details, see [Python’s documentation on format strings](https://docs.python.org/3/library/string.html#formatstrings).
 
-For more details, see [Python’s documentation on format strings](https://docs.python.org/3/library/string.html#formatstrings).
-
-The string example from the image above can be reproduced as:
-
-Instead of using `[In Stock: {1}] >> {0}` one may express it as `Stock: {part.stock:.0f}] >> {part.description}`
+Using the string example from the image above we can rewrite `[In Stock: {1}] >> {0}` as `Stock: {part.stock:.0f}] >> {part.description}`.
 
 ## Use in KiCad
 
