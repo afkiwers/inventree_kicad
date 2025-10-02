@@ -268,6 +268,28 @@ Users have the option to determine the presentation style of stock data through 
 
 ![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/stock_data.png)
 
+### Not Just Stock
+
+Along with `{0}` and `{1}` being available, an object named `part` with the following values is available.
+
+|Parameter|Type|Description|
+| ------- | -- | --------- |
+| `name` | `str` | The name field of the part. |
+| `IPN` | `str` | The Internal Part Number field of the part. |
+| `description` | `str` | The description field of the part. |
+| `stock` | `int` | The unallocated stock count for this part. The `int` equivalent of `{1}` |
+| `revision` | `str` | The revision field of the part. |
+| `used_in` | `int` | The quantity of BOMs this part is used in. |
+
+Note: if using `part.stock` or `part.used_in`, as they are `int`s instead of `str`s. It is recommended to include format specifiers for handling a potential decimal point. For example: `{part.stock:.0f}`.  
+The example specifier (`:.0f`) formats the number as a floating point, with no padding, and zero digits trailing the decimal point.
+
+Please read [Python's docs](https://docs.python.org/3/library/string.html#formatstrings) for more information as it relates to format strings.
+
+The example format string from the image above could be reproduced as such (the portion within the quotes):
+```python
+f"[Stock: {part.stock:.0f}] >> {part.description}"
+```
 
 ## Use in KiCad
 
