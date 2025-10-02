@@ -599,7 +599,7 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
                 if hasattr(part, "get_used_in"):
                     part_.used_in = len(part.get_used_in())
 
-                description = self.stock_count_format.format(part.description, decimal2string(stock_count), part=part_)
+                description = self.stock_count_format.format(part.description, decimal2string(stock_count), part=part_).strip()
             except Exception as e:
                 logger.exception("Failed to format stock count: %s", e)
 
