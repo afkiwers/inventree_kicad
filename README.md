@@ -268,28 +268,29 @@ Users have the option to determine the presentation style of stock data through 
 
 ![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/stock_data.png)
 
-### Not Just Stock
+### Advanced Formatting
 
-Along with `{0}` and `{1}` being available, an object named `part` with the following values is available.
+In addition to `{0}` and `{1}`, an object named `part` is available with the following attributes:  
 
-|Parameter|Type|Description|
-| ------- | -- | --------- |
-| `name` | `str` | The name field of the part. |
-| `IPN` | `str` | The Internal Part Number field of the part. |
-| `description` | `str` | The description field of the part. |
-| `stock` | `int` | The unallocated stock count for this part. The `int` equivalent of `{1}` |
-| `revision` | `str` | The revision field of the part. |
-| `used_in` | `int` | The quantity of BOMs this part is used in. |
+| Parameter     | Type  | Description |
+| ------------- | ----- | ----------- |
+| `name`        | `str` | The name of the part. |
+| `IPN`         | `str` | The internal part number. |
+| `description` | `str` | The part’s description (equivalent to `{0}`). |
+| `stock`       | `int` | The unallocated stock count for this part (equivalent to `{1}`). |
+| `revision`    | `str` | The part’s revision. |
+| `used_in`     | `int` | The number of BOMs this part appears in. |
 
-Note: if using `part.stock` or `part.used_in`, as they are `int`s instead of `str`s. It is recommended to include format specifiers for handling a potential decimal point. For example: `{part.stock:.0f}`.  
-The example specifier (`:.0f`) formats the number as a floating point, with no padding, and zero digits trailing the decimal point.
+**Note:** Both `part.stock` and `part.used_in` are integers, not strings.  
+When formatting these values, it’s recommended to include format specifiers to handle decimals gracefully.  
 
-Please read [Python's docs](https://docs.python.org/3/library/string.html#formatstrings) for more information as it relates to format strings.
+For example: `{part.stock:.0f}`. Here, (`:.0f`) formats the number as a floating point, with no padding, and zero digits trailing the decimal point.
 
-The example format string from the image above could be reproduced as such (the portion within the quotes):
-```python
-f"[Stock: {part.stock:.0f}] >> {part.description}"
-```
+For more details, see [Python’s documentation on format strings](https://docs.python.org/3/library/string.html#formatstrings).
+
+The string example from the image above can be reproduced as:
+
+Instead of using `[In Stock: {1}] >> {0}` one may express it as `Stock: {part.stock:.0f}] >> {part.description}`
 
 ## Use in KiCad
 
