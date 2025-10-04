@@ -47,4 +47,10 @@ setuptools.setup(
             "KiCadLibraryPlugin = inventree_kicad.KiCadLibraryPlugin:KiCadLibraryPlugin"
         ]
     },
+
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "Operating System :: OS Independent",
+        "Framework :: InvenTree",
+    ],
 )
