@@ -92,27 +92,27 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
         'KICAD_SYMBOL_PARAMETER': {
             'name': _('Symbol Parameter'),
             'description': _('The part parameter to use for the symbol name.'),
-            'model': 'part.partparametertemplate',
+            'model': 'common.parametertemplate',
         },
         'KICAD_FOOTPRINT_PARAMETER': {
             'name': _('Footprint Parameter'),
             'description': _('The part parameter to use for the footprint name.'),
-            'model': 'part.partparametertemplate',
+            'model': 'common.parametertemplate',
         },
         'KICAD_REFERENCE_PARAMETER': {
             'name': _('Reference Parameter'),
             'description': _('The part parameter to use for the reference name.'),
-            'model': 'part.partparametertemplate',
+            'model': 'common.parametertemplate',
         },
         'KICAD_VALUE_PARAMETER': {
             'name': _('Value Parameter'),
             'description': _('The part parameter to use for the value.'),
-            'model': 'part.partparametertemplate',
+            'model': 'common.parametertemplate',
         },
         'KICAD_FIELD_VISIBILITY_PARAMETER': {
             'name': _('Field Visibility Parameter'),
             'description': _('Set field visibility in KiCad using this parameter. Enter comma-separated InvenTree parameter names to show per part.'),
-            'model': 'part.partparametertemplate',
+            'model': 'common.parametertemplate',
         },
         'KICAD_FIELD_VISIBILITY_PARAMETER_GLOBAL': {
             'name': _('GLobal Field Visibility Parameter'),
@@ -122,18 +122,18 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
         'KICAD_EXCLUDE_FROM_BOM_PARAMETER': {
             'name': _('BOM Exclusion Parameter'),
             'description': _('The part parameter to use for to exclude it from the BOM.'),
-            'model': 'part.partparametertemplate',
+            'model': 'common.parametertemplate',
         },
         'KICAD_EXCLUDE_FROM_BOARD_PARAMETER': {
             'name': _('Board Exclusion Parameter'),
             'description': _(
                 'The part parameter to use for to exclude it from the netlist when passing from schematic to board.'),
-            'model': 'part.partparametertemplate',
+            'model': 'common.parametertemplate',
         },
         'KICAD_EXCLUDE_FROM_SIM_PARAMETER': {
             'name': _('Simulation Exclusion Parameter'),
             'description': _('The part parameter to use for to exclude it from the simulation.'),
-            'model': 'part.partparametertemplate',
+            'model': 'common.parametertemplate',
         },
         'KICAD_META_DATA_IMPORT_ADD_DATASHEET': {
             'name': _('[KiCad Metadata Import] Add Datasheet if URL is Valid'),
