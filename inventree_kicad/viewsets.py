@@ -44,7 +44,7 @@ class CategoryApi(rest_viewsets.ViewSet):
         return self.serializer_class(*args, **kwargs)
 
     def get_part_parameter_id_by_name(self, name):
-        from .models import PartParameterTemplate
+        from common.models import ParameterTemplate
         
         ret = None
         part_parameter = None
@@ -53,7 +53,7 @@ class CategoryApi(rest_viewsets.ViewSet):
             # an integer was passed to the function -> assume it's the ID already
             ret = name
         elif isinstance(name, str):
-            part_parameter = PartParameterTemplate.objects.filter(name=name).first()
+            part_parameter = ParameterTemplate.objects.filter(name=name).first()
 
             if part_parameter:
                 ret = part_parameter.pk
@@ -95,7 +95,8 @@ class CategoryApi(rest_viewsets.ViewSet):
         return response.Response(serializer.data)
 
     def create(self, request):
-        from part.models import PartCategory, PartParameterTemplate
+        from common.models import ParameterTemplate
+        from part.models import PartCategory
 
         part_category = get_object_or_404(PartCategory, pk=request.data.get('category'))
 
@@ -106,11 +107,11 @@ class CategoryApi(rest_viewsets.ViewSet):
             "default_reference": request.data.get('default_reference', ''),
         }
 
-        # Add PartParameterTemplate keys
+        # Add ParameterTemplate keys
         # Allow passing the parameter name instead of the id
         for parameter in ['default_value_parameter_template', 'footprint_parameter_template']:
             key = 'name' if isinstance(request.data.get(parameter), str) else 'pk'
-            validated_data[parameter] = PartParameterTemplate.objects.filter(**{key: request.data.get(parameter)}).first()
+            validated_data[parameter] = ParameterTemplate.objects.filter(**{key: request.data.get(parameter)}).first()
 
         serializer = serializers.KicadDetailedCategorySerializer()
         created_category = serializer.create(validated_data)

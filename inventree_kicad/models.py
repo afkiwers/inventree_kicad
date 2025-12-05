@@ -4,7 +4,8 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import User
 
-from part.models import PartCategory, PartParameterTemplate
+from common.models import ParameterTemplate
+from part.models import PartCategory
 
 
 class SelectedCategory(models.Model):
@@ -44,7 +45,7 @@ class SelectedCategory(models.Model):
     )
 
     default_value_parameter_template = models.ForeignKey(
-        PartParameterTemplate,
+        ParameterTemplate,
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
@@ -53,7 +54,7 @@ class SelectedCategory(models.Model):
     )
 
     footprint_parameter_template = models.ForeignKey(
-        PartParameterTemplate,
+        ParameterTemplate,
         on_delete=models.SET_NULL,
         related_name="footprint_kicad_categories",
         blank=True,

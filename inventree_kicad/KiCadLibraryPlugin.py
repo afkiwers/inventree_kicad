@@ -17,7 +17,8 @@ from rest_framework import routers
 
 from InvenTree.helpers import str2bool
 from common.notifications import logger
-from part.models import Part, PartParameterTemplate, PartParameter
+from common.models import ParameterTemplate, Parameter
+from part.models import Part
 from plugin import InvenTreePlugin
 
 from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin
@@ -202,7 +203,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             return render_to_string('inventree_kicad/kicad_bom_import.html',
                                     context={
                                         'kicad_parameters': ['Reference', 'Footprint', 'Symbol'],
-                                        'part_parameter_templates': PartParameterTemplate.objects.filter(
+                                        'part_parameter_templates': ParameterTemplate.objects.filter(
                                             name__icontains='KiCad')
                                     },
                                     request=request)
@@ -404,12 +405,16 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
 
                 for idx, t_id in enumerate(t_ids):
                     # find and/or add template and value
-                    template = PartParameterTemplate.objects.get(id=t_id)
-                    parameter = PartParameter.objects.get_or_create(part=part, template=template)
+                    template = ParameterTemplate.objects.get(id=t_id)
+                    parameter, created = Parameter.objects.get_or_create(
+                        model_id=part.pk,
+                        model_type=part.get_content_type(),
+                        template=template
+                    )
                     # Don't override
-                    if parameter[1] or self.get_setting('IMPORT_INVENTREE_OVERRIDE_PARAS', None):
-                        parameter[0].data = t_id_values[idx]
-                        parameter[0].save()
+                    if created or self.get_setting('IMPORT_INVENTREE_OVERRIDE_PARAS', None):
+                        parameter.data = t_id_values[idx]
+                        parameter.save()
 
                 if datasheet and str2bool(self.get_setting('KICAD_META_DATA_IMPORT_ADD_DATASHEET', False)):
                     try:
