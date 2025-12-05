@@ -56,7 +56,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
 
     WEBSITE = "https://github.com/afkiwers"
 
-    MIN_VERSION = '0.12.0'
+    MIN_VERSION = '1.2.0'
 
     SETTINGS = {
         'KICAD_ENABLE_SUBCATEGORY': {
