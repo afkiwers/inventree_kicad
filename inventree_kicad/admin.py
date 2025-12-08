@@ -17,7 +17,11 @@ class SelectedCategoryAdmin(admin.ModelAdmin):
     list_display = [f.name for f in SelectedCategory._meta.fields]
     list_per_page = 25
 
-    autocomplete_fields = ['category']
+    autocomplete_fields = [
+        'category',
+        'default_value_parameter_template',
+        'footprint_parameter_template'
+    ]
 
 
 class ProgressIndicatorAdmin(admin.ModelAdmin):

@@ -14,6 +14,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='selectedcategory',
             name='default_value_parameter_template',
-            field=models.ForeignKey(blank=True, help_text='Default value parameter template for this category, if not specified for an individual part', null=True, on_delete=django.db.models.deletion.SET_NULL, to='part.partparametertemplate', verbose_name='Default Value Parameter Template'),
+            field=models.ForeignKey(blank=True, help_text='Default value parameter template for this category, if not specified for an individual part', null=True, on_delete=django.db.models.deletion.SET_NULL, to='common.parametertemplate', verbose_name='Default Value Parameter Template'),
         ),
     ]

@@ -17,7 +17,8 @@ from rest_framework import routers
 
 from InvenTree.helpers import str2bool
 from common.notifications import logger
-from part.models import Part, PartParameterTemplate, PartParameter
+from common.models import ParameterTemplate, Parameter
+from part.models import Part
 from plugin import InvenTreePlugin
 
 from plugin.mixins import UrlsMixin, AppMixin, SettingsMixin
@@ -56,8 +57,8 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
 
     WEBSITE = "https://github.com/afkiwers"
 
-    MIN_VERSION = '0.12.0'
-    MAX_VERSION = '1.1.99'
+    MIN_VERSION = '1.2.0'
+    MAX_VERSION = '1.99.99'
 
     SETTINGS = {
         'KICAD_ENABLE_SUBCATEGORY': {
@@ -93,27 +94,27 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
         'KICAD_SYMBOL_PARAMETER': {
             'name': _('Symbol Parameter'),
             'description': _('The part parameter to use for the symbol name.'),
-            'model': 'part.partparametertemplate',
+            'model': 'common.parametertemplate',
         },
         'KICAD_FOOTPRINT_PARAMETER': {
             'name': _('Footprint Parameter'),
             'description': _('The part parameter to use for the footprint name.'),
-            'model': 'part.partparametertemplate',
+            'model': 'common.parametertemplate',
         },
         'KICAD_REFERENCE_PARAMETER': {
             'name': _('Reference Parameter'),
             'description': _('The part parameter to use for the reference name.'),
-            'model': 'part.partparametertemplate',
+            'model': 'common.parametertemplate',
         },
         'KICAD_VALUE_PARAMETER': {
             'name': _('Value Parameter'),
             'description': _('The part parameter to use for the value.'),
-            'model': 'part.partparametertemplate',
+            'model': 'common.parametertemplate',
         },
         'KICAD_FIELD_VISIBILITY_PARAMETER': {
             'name': _('Field Visibility Parameter'),
             'description': _('Set field visibility in KiCad using this parameter. Enter comma-separated InvenTree parameter names to show per part.'),
-            'model': 'part.partparametertemplate',
+            'model': 'common.parametertemplate',
         },
         'KICAD_FIELD_VISIBILITY_PARAMETER_GLOBAL': {
             'name': _('GLobal Field Visibility Parameter'),
@@ -123,18 +124,18 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
         'KICAD_EXCLUDE_FROM_BOM_PARAMETER': {
             'name': _('BOM Exclusion Parameter'),
             'description': _('The part parameter to use for to exclude it from the BOM.'),
-            'model': 'part.partparametertemplate',
+            'model': 'common.parametertemplate',
         },
         'KICAD_EXCLUDE_FROM_BOARD_PARAMETER': {
             'name': _('Board Exclusion Parameter'),
             'description': _(
                 'The part parameter to use for to exclude it from the netlist when passing from schematic to board.'),
-            'model': 'part.partparametertemplate',
+            'model': 'common.parametertemplate',
         },
         'KICAD_EXCLUDE_FROM_SIM_PARAMETER': {
             'name': _('Simulation Exclusion Parameter'),
             'description': _('The part parameter to use for to exclude it from the simulation.'),
-            'model': 'part.partparametertemplate',
+            'model': 'common.parametertemplate',
         },
         'KICAD_META_DATA_IMPORT_ADD_DATASHEET': {
             'name': _('[KiCad Metadata Import] Add Datasheet if URL is Valid'),
@@ -203,7 +204,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             return render_to_string('inventree_kicad/kicad_bom_import.html',
                                     context={
                                         'kicad_parameters': ['Reference', 'Footprint', 'Symbol'],
-                                        'part_parameter_templates': PartParameterTemplate.objects.filter(
+                                        'part_parameter_templates': ParameterTemplate.objects.filter(
                                             name__icontains='KiCad')
                                     },
                                     request=request)
@@ -405,12 +406,16 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
 
                 for idx, t_id in enumerate(t_ids):
                     # find and/or add template and value
-                    template = PartParameterTemplate.objects.get(id=t_id)
-                    parameter = PartParameter.objects.get_or_create(part=part, template=template)
+                    template = ParameterTemplate.objects.get(id=t_id)
+                    parameter, created = Parameter.objects.get_or_create(
+                        model_id=part.pk,
+                        model_type=part.get_content_type(),
+                        template=template
+                    )
                     # Don't override
-                    if parameter[1] or self.get_setting('IMPORT_INVENTREE_OVERRIDE_PARAS', None):
-                        parameter[0].data = t_id_values[idx]
-                        parameter[0].save()
+                    if created or self.get_setting('IMPORT_INVENTREE_OVERRIDE_PARAS', None):
+                        parameter.data = t_id_values[idx]
+                        parameter.save()
 
                 if datasheet and str2bool(self.get_setting('KICAD_META_DATA_IMPORT_ADD_DATASHEET', False)):
                     try:
