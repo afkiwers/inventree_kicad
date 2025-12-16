@@ -57,6 +57,10 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             'exclude_from_bom',
             'exclude_from_board',
             'exclude_from_sim',
+            # Note: this is added due to a regression starting after KiCad 9.0.4.
+            # Description fields for placed parts don't populated without this.
+            # See https://gitlab.com/kicad/code/kicad/-/issues/22043#note_2955901707
+            'description',
             'fields',
         ]
 
@@ -66,6 +70,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
     exclude_from_bom = serializers.SerializerMethodField('get_exclude_from_bom')
     exclude_from_board = serializers.SerializerMethodField('get_exclude_from_board')
     exclude_from_sim = serializers.SerializerMethodField('get_exclude_from_sim')
+    description = serializers.CharField(read_only=True)
     name = serializers.SerializerMethodField('get_name')
 
     fields = serializers.SerializerMethodField('get_kicad_fields')
