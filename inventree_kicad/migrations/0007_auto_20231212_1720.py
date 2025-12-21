@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='selectedcategory',
             name='footprint_parameter_template',
-            field=models.ForeignKey(blank=True, help_text='Footprint parameter template for this category, will use KICAD_FOOTPRINT_PARAMETER setting if not set', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='footprint_kicad_categories', to='part.partparametertemplate', verbose_name='Footprint Parameter Template'),
+            field=models.ForeignKey(blank=True, help_text='Footprint parameter template for this category, will use KICAD_FOOTPRINT_PARAMETER setting if not set', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='footprint_kicad_categories', to='common.parametertemplate', verbose_name='Footprint Parameter Template'),
         ),
         migrations.CreateModel(
             name='FootprintParameterMapping',

@@ -10,7 +10,8 @@ from rest_framework.reverse import reverse_lazy
 
 from InvenTree.helpers_model import construct_absolute_url
 from part.filters import annotate_total_stock, annotate_sales_order_allocations, annotate_build_order_allocations, annotate_variant_quantity, variant_stock_query
-from part.models import Part, PartCategory, PartParameter
+from common.models import Parameter
+from part.models import Part, PartCategory
 from company.models import ManufacturerPart, SupplierPart
 from InvenTree.helpers import str2bool, decimal2string
 
@@ -111,8 +112,12 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             return backup_value
 
         try:
-            parameter = PartParameter.objects.filter(part=part, template__pk=template_id).first()
-        except (ValueError, PartParameter.DoesNotExist):
+            parameter = Parameter.objects.filter(
+                model_type=part.get_content_type(),
+                model_id=part.pk,
+                template__pk=template_id
+            ).first()
+        except (ValueError, Parameter.DoesNotExist):
             parameter = None
 
         if parameter:
