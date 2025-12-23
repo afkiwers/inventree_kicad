@@ -608,12 +608,8 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
                     IPN=part.IPN,
                     description=part.description,
                     stock=stock_count,
-                    revision=part.revision,
-                    used_in=0
+                    revision=part.revision
                 )
-
-                if hasattr(part, "get_used_in"):
-                    part_.used_in = len(part.get_used_in())
 
                 description = self.stock_count_format.format(part.description, decimal2string(stock_count), part=part_).strip()
             except Exception as e:
