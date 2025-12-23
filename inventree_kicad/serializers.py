@@ -11,7 +11,6 @@ from rest_framework.reverse import reverse_lazy
 
 from InvenTree.helpers_model import construct_absolute_url
 from part.filters import annotate_total_stock, annotate_sales_order_allocations, annotate_build_order_allocations, annotate_variant_quantity, variant_stock_query
-from common.models import Parameter
 from part.models import Part, PartCategory
 from company.models import ManufacturerPart, SupplierPart
 from InvenTree.helpers import str2bool, decimal2string
