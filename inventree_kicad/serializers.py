@@ -80,7 +80,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         return _determine_part_name(part, self.use_ipn)
 
-    def get_plugin_setting(self, key, default = None):
+    def get_plugin_setting(self, key, default=None):
         """Helper function to get plugin settings.
         
         Here, we cache the entire plugin settings dict on first access,
@@ -95,7 +95,6 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         setattr(self, '_plugin_settings', settings_dict)
 
         return val
-
 
     def get_kicad_category(self, part):
         """For the provided part instance, find the associated SelectedCategory instance.
