@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.db.models import ExpressionWrapper, F, DecimalField
 from django.db.models.functions import Greatest
@@ -291,7 +292,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 excluded_templates.append(str(kicad_category.default_value_parameter_template.id))
 
         # Build out an absolute URL for the part instance
-        url = construct_absolute_url(f'/part/{part.id}/', request=self.context.get('request'))
+        url = construct_absolute_url(f'/{settings.FRONTEND_URL_BASE}/part/{part.id}/', request=self.context.get('request'))
 
         # Always include the InvenTree field, which has the ID of the part
         fields = {
