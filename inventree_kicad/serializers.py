@@ -660,10 +660,7 @@ class KicadCategorySerializer(serializers.ModelSerializer):
         ]
 
     id = serializers.CharField(source='pk', read_only=True)
-    name = serializers.SerializerMethodField('get_name')
-
-    def get_name(self, category):
-        return category.pathstring
+    name = serializers.CharField(source='pathstring', read_only=True)
 
 
 class KicadDetailedCategorySerializer(serializers.ModelSerializer):
