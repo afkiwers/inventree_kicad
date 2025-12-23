@@ -112,19 +112,14 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         if template_id in [None, '']:
             return backup_value
         
-        try:
-            parameter = Parameter.objects.filter(
-                model_type=part.get_content_type(),
-                model_id=part.pk,
-                template__pk=template_id
-            ).first()
-        except (ValueError, Parameter.DoesNotExist):
-            parameter = None
+        # Find a matching parameter
+        # Note: We have already pre-fetched the parameters, so it is cheaper to iterate in Python
+        for param in part.parameters:
+            if str(param.template_id) == str(template_id):
+                return param.data
 
-        if parameter:
-            return parameter.data
-        else:
-            return backup_value
+        # Did not find a matching parameter - return backup value
+        return backup_value
 
     def get_reference(self, part):
         """Return the reference associated with this part

@@ -201,18 +201,9 @@ class PartDetail(generics.RetrieveAPIView):
     """
 
     serializer_class = serializers.KicadDetailedPartSerializer
-    queryset = Part.objects.all()
-
-    def get_queryset(self):
-        """Prefetch related fields to speed up query"""
-
-        queryset = super().get_queryset()
-
-        queryset = queryset.prefetch_related(
-            'parameters_list',
-        )
-
-        return queryset
+    queryset = Part.objects.all().prefetch_related(
+        'parameters_list',
+    )
 
     def get_serializer(self, *args, **kwargs):
         """Add the parent plugin instance to the serializer contenxt"""
