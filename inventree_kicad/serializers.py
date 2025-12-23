@@ -79,6 +79,22 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         return _determine_part_name(part, self.use_ipn)
 
+    def get_plugin_setting(self, key, default=None):
+        """Helper function to get plugin settings.
+        
+        Here, we cache the entire plugin settings dict on first access,
+        to reduce the number of database hits.
+        """
+
+        settings_dict = getattr(self, '_plugin_settings', self.plugin.get_settings_dict())
+
+        val = settings_dict.get(key, default)
+
+        # Cache the settings dict for future use
+        setattr(self, '_plugin_settings', settings_dict)
+
+        return val
+
     def get_kicad_category(self, part):
         """For the provided part instance, find the associated SelectedCategory instance.
 
@@ -135,7 +151,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             reference = kicad_category.default_reference
 
         # Find the reference parameter value associated with this part instance
-        template_id = self.plugin.get_setting('KICAD_REFERENCE_PARAMETER', None)
+        template_id = self.get_plugin_setting('KICAD_REFERENCE_PARAMETER')
 
         reference = self.get_parameter_value(part, template_id, backup_value=reference)
 
@@ -156,12 +172,12 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             symbol = kicad_category.default_symbol
 
         # Find the symbol parameter value associated with this part instance
-        template_id = self.plugin.get_setting('KICAD_SYMBOL_PARAMETER', None)
+        template_id = self.get_plugin_setting('KICAD_SYMBOL_PARAMETER', None)
 
         symbol = self.get_parameter_value(part, template_id, backup_value=symbol)
 
         if not symbol:
-            symbol = template_id = self.plugin.get_setting('DEFAULT_FOR_MISSING_SYMBOL', "")
+            symbol = template_id = self.get_plugin_setting('DEFAULT_FOR_MISSING_SYMBOL', "")
 
         # KiCad does not like colons in their symbol names.
         # Check if there is more than one colon present, if so rebuild string and honour only the first
@@ -206,7 +222,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
                 template_id = kicad_category.footprint_parameter_template.id
 
         if not template_id:
-            template_id = self.plugin.get_setting('KICAD_FOOTPRINT_PARAMETER', None)
+            template_id = self.get_plugin_setting('KICAD_FOOTPRINT_PARAMETER', None)
 
         footprint = self.get_parameter_value(part, template_id, backup_value=footprint)
 
@@ -247,7 +263,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         value = part.name
 
         # Find the value parameter value associated with this part instance
-        template_id = self.plugin.get_setting('KICAD_VALUE_PARAMETER', None)
+        template_id = self.get_plugin_setting('KICAD_VALUE_PARAMETER', None)
 
         value = self.get_parameter_value(part, template_id, backup_value=value)
 
@@ -269,14 +285,14 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         """
 
         excluded_templates = [
-            self.plugin.get_setting('KICAD_SYMBOL_PARAMETER', None),
-            self.plugin.get_setting('KICAD_FOOTPRINT_PARAMETER', None),
-            self.plugin.get_setting('KICAD_REFERENCE_PARAMETER', None),
-            self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOM_PARAMETER', None),
-            self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOARD_PARAMETER', None),
-            self.plugin.get_setting('KICAD_EXCLUDE_FROM_SIM_PARAMETER', None),
-            self.plugin.get_setting('KICAD_VALUE_PARAMETER', None),
-            self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER', None),
+            self.get_plugin_setting('KICAD_SYMBOL_PARAMETER', None),
+            self.get_plugin_setting('KICAD_FOOTPRINT_PARAMETER', None),
+            self.get_plugin_setting('KICAD_REFERENCE_PARAMETER', None),
+            self.get_plugin_setting('KICAD_EXCLUDE_FROM_BOM_PARAMETER', None),
+            self.get_plugin_setting('KICAD_EXCLUDE_FROM_BOARD_PARAMETER', None),
+            self.get_plugin_setting('KICAD_EXCLUDE_FROM_SIM_PARAMETER', None),
+            self.get_plugin_setting('KICAD_VALUE_PARAMETER', None),
+            self.get_plugin_setting('KICAD_FIELD_VISIBILITY_PARAMETER', None),
         ]
 
         # exclude default value parameter template. This will be used for the actual value
@@ -300,14 +316,14 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             }
         }
 
-        if self.plugin.get_setting('KICAD_INCLUDE_IPN', '0') != '0':
+        if self.get_plugin_setting('KICAD_INCLUDE_IPN', '0') != '0':
             fields['IPN'] = {
                 'value': f'{part.IPN}',
-                'visible': self.plugin.get_setting('KICAD_INCLUDE_IPN', 'False')
+                'visible': self.get_plugin_setting('KICAD_INCLUDE_IPN', 'False')
             }
 
         # Find the value parameter value associated with this part instance
-        template_id = self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER', None)
+        template_id = self.get_plugin_setting('KICAD_FIELD_VISIBILITY_PARAMETER', None)
         kicad_local_field_visibility = None
         try:
             # check if local parameter set, if so extract fields that need displaying in KiCad
@@ -321,7 +337,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         # load the global visibility settings if available and valid
         try:
-            kicad_global_field_visibility = self.plugin.get_setting('KICAD_FIELD_VISIBILITY_PARAMETER_GLOBAL', None).split(',')
+            kicad_global_field_visibility = self.get_plugin_setting('KICAD_FIELD_VISIBILITY_PARAMETER_GLOBAL', None).split(',')
 
             kicad_global_field_visibility = [field.strip().lower() for field in kicad_global_field_visibility]
 
@@ -329,7 +345,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             pass  # ignore if there are any issues
 
         # Check if we should include the parameter units in custom parameters
-        kicad_include_units_in_parameters = self.plugin.get_setting('KICAD_INCLUDE_UNITS_IN_PARAMETERS', True)
+        kicad_include_units_in_parameters = self.get_plugin_setting('KICAD_INCLUDE_UNITS_IN_PARAMETERS', True)
 
         for parameter in part.parameters.all():
             # Exclude any which have already been used for default KiCad fields
@@ -450,7 +466,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             },
         }
 
-        if self.plugin.get_setting('KICAD_ENABLE_MANUFACTURER_DATA', False):
+        if self.get_plugin_setting('KICAD_ENABLE_MANUFACTURER_DATA', False):
             return kicad_default_fields | self.get_supplier_part_fields(part) | self.get_custom_fields(part, list(kicad_default_fields.keys()))
         else:
             return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
@@ -466,7 +482,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         value = 'False'
 
         # Find the value parameter value associated with this part instance
-        template_id = self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOM_PARAMETER', None)
+        template_id = self.get_plugin_setting('KICAD_EXCLUDE_FROM_BOM_PARAMETER', None)
 
         value = self.get_parameter_value(part, template_id, backup_value=value)
 
@@ -483,7 +499,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         value = 'False'
 
         # Find the value parameter value associated with this part instance
-        template_id = self.plugin.get_setting('KICAD_EXCLUDE_FROM_BOARD_PARAMETER', None)
+        template_id = self.get_plugin_setting('KICAD_EXCLUDE_FROM_BOARD_PARAMETER', None)
 
         value = self.get_parameter_value(part, template_id, backup_value=value)
 
@@ -500,7 +516,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         value = 'False'
 
         # Find the value parameter value associated with this part instance
-        template_id = self.plugin.get_setting('KICAD_EXCLUDE_FROM_SIM_PARAMETER', None)
+        template_id = self.get_plugin_setting('KICAD_EXCLUDE_FROM_SIM_PARAMETER', None)
 
         value = self.get_parameter_value(part, template_id, backup_value=value)
 
