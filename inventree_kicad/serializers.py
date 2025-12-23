@@ -108,9 +108,9 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         - If the part does not have a matching parameter, return empty string
         """
 
-        if template_id is None:
+        if template_id in [None, '']:
             return backup_value
-
+        
         try:
             parameter = Parameter.objects.filter(
                 model_type=part.get_content_type(),

@@ -209,7 +209,7 @@ class PartDetail(generics.RetrieveAPIView):
         queryset = super().get_queryset()
 
         queryset = queryset.prefetch_related(
-            'parameters',
+            'parameters_list',
         )
 
         return queryset
