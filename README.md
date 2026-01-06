@@ -6,6 +6,19 @@ As of the current stage of development, KiCad exclusively offers read-only acces
 
 However, this plugin provides a metadata import tool to import changes made within KiCad 7. Please note that KiCad 8 stopped supporting that though. This enables users to add footprints, symbols and datasheets to individual parts during the schematic design process if not already available and re-import that information into InvenTree to have it available for the next time.
 
+## Compatibility Matrix
+
+> [!IMPORTANT]
+> Due to major version differences in the InvenTree software, not all plugin versions are intercompatible.
+
+- If you InvenTree installation is `1.2.0` (or newer) then you must install version `2.0.0` (or newer) of *this* plugin
+- If your InvenTree installation is *older* than `1.2.0` then you must install a lower
+
+| InvenTree Version | Plugin Version |
+| ----------------- | -------------- |
+| < 1.2.0 | < 2.0.0 | 
+| >= 1.2.0 | >= 2.0.0 |
+
 ## Installing the Plugin
 
 There are several methods available for installing this plugin. To gain a comprehensive understanding of the installation process, please refer to the [InvenTree - Installing a Plugin Guide](https://docs.inventree.org/en/latest/plugins/install/#installation-methods). Depending on your preferred approach, the following instructions will provide you with the necessary information.
