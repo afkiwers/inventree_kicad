@@ -11,13 +11,19 @@ However, this plugin provides a metadata import tool to import changes made with
 > [!IMPORTANT]
 > Due to major version differences in the InvenTree software, not all plugin versions are intercompatible.
 
-- If you InvenTree installation is `1.2.0` (or newer) then you must install version `2.0.0` (or newer) of *this* plugin
-- If your InvenTree installation is *older* than `1.2.0` then you must install a lower
+The following table shows the compatibility between the **InvenTree KiCad Plugin** and **InvenTree** versions.
 
-| InvenTree Version | Plugin Version |
-| ----------------- | -------------- |
-| < 1.2.0 | < 2.0.0 | 
-| >= 1.2.0 | >= 2.0.0 |
+| InvenTree Version | Plugin Version | Notes |
+|-------------------|--------------------------------|-------|
+| `< 1.2.0`         | `< 2.0.0`                      | Older InvenTree releases require plugin versions prior to `2.0.0` |
+| `>= 1.2.0`        | `>= 2.0.0`                     | InvenTree `1.2.0` and newer require plugin version `2.0.0` or later |
+
+### Notes
+
+- InvenTree versions **1.2.0 and newer** introduced API changes requiring `inventree_kicad` **v2.0.0+**
+- If using an older InvenTree installation, ensure the plugin version remains below `2.0.0`
+- Always verify compatibility before upgrading either InvenTree or the KiCad plugin
+
 
 ## Installing the Plugin
 
