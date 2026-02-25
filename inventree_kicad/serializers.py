@@ -370,7 +370,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
             units = ""
             if kicad_include_units_in_parameters:
-                units = f" {parameter.units}"
+                units = f"{parameter.units}"
 
             fields[parameter.template.name] = {
                 "value": f'{parameter.data}{units}'.strip(),
