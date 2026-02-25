@@ -87,9 +87,12 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
         },
         'KICAD_INCLUDE_IPN': {
             'name': _('Include IPN'),
-            'description': _('When activated, the IPN is included in the KiCad fields for a part'),
-            'choices': [('0', 'Do not Include'), ('False', 'Include but Hide in Schematic'), ('True', 'Include and Show in Schematic')],
-            'default': '0',
+            'description': _('When activated, the IPN is included in the KiCad fields for a part. Note: Including IPN as value will supercede the KICAD_VALUE_PARAMETER setting.'),
+            'choices': [('dont_include', 'Do not Include'),
+                        ('include_hidden', 'Include but Hide in Schematic'),
+                        ('include_visible', 'Include and Show in Schematic'),
+                        ('include_as_value', "Include as Value")],
+            'default': 'dont_include',
         },
         'KICAD_SYMBOL_PARAMETER': {
             'name': _('Symbol Parameter'),

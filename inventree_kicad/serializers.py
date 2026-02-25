@@ -259,6 +259,10 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         Otherwise, simply return the name of the part
         """
 
+        # Return IPN as value if desired
+        if self.get_plugin_setting('KICAD_INCLUDE_IPN') == 'include_as_value':
+            return str(part.IPN)
+
         # Fallback to the part name
         value = part.name
 
@@ -316,10 +320,12 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             }
         }
 
-        if self.get_plugin_setting('KICAD_INCLUDE_IPN', '0') != '0':
+        include_ipn = self.get_plugin_setting('KICAD_INCLUDE_IPN')
+
+        if include_ipn in ('include_hidden', 'include_visible'):
             fields['IPN'] = {
                 'value': f'{part.IPN}',
-                'visible': self.get_plugin_setting('KICAD_INCLUDE_IPN', 'False')
+                'visible': str(include_ipn == 'include_visible')
             }
 
         # Find the value parameter value associated with this part instance
