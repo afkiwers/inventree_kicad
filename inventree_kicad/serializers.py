@@ -236,21 +236,32 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
     def get_datasheet(self, part):
         """Return the datasheet associated with this part.
 
-        Here, we look at the attachments associated with the part,
-        and return the first one which has a comment matching "datasheet"
+        First we check, if an external datasheet URL was provided
+        using the datsheet parameter. If not, we look at the attachments
+        associated with the part, and return the first one which has
+        a comment matching "datasheet"
         """
 
-        datasheet = part.attachments.filter(comment__iexact='datasheet').first()
+        # Default to empty value
+        datasheet = ""
 
-        if datasheet:
-            try:
-                return datasheet.fully_qualified_url()
-            except AttributeError:
-                # This version of InvenTree does not seem to support fully_qualified_urls
-                return _("Unable to create a URL for the datasheet")
+        # Find the datasheet parameter value associated with this part instance
+        template_id = self.get_plugin_setting('KICAD_DATASHEET_URL_PARAMETER', None)
 
-        # Default, return empty string
-        return ""
+        datasheet = self.get_parameter_value(part, template_id, backup_value=datasheet)
+
+        # Try to obtain url of attachment if no external datasheet url was provided
+        if not datasheet:
+            datasheet = part.attachments.filter(comment__iexact='datasheet').first()
+
+            if datasheet:
+                try:
+                    datasheet = datasheet.fully_qualified_url()
+                except AttributeError:
+                    # This version of InvenTree does not seem to support fully_qualified_urls
+                    return _("Unable to create a URL for the datasheet")
+
+        return str(datasheet)
 
     def get_value(self, part):
         """Return the value associated with this part.

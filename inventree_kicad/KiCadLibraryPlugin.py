@@ -106,6 +106,11 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, SettingsContentMixi
             'description': _('The part parameter to use for the reference name.'),
             'model': 'common.parametertemplate',
         },
+        'KICAD_DATASHEET_URL_PARAMETER': {
+            'name': _('Datasheet Parameter'),
+            'description': _('The datasheet parameter to use for the datasheet. If no parameter value is set for a part, the attachment will be used.'),
+            'model': 'common.parametertemplate',
+        },
         'KICAD_VALUE_PARAMETER': {
             'name': _('Value Parameter'),
             'description': _('The part parameter to use for the value.'),
