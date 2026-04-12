@@ -345,7 +345,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             pass  # ignore if there are any issues
 
         # Check if we should include the parameter units in custom parameters
-        kicad_include_units_in_parameters = self.get_plugin_setting('KICAD_INCLUDE_UNITS_IN_PARAMETERS', True)
+        kicad_include_units_in_parameters = str2bool(self.get_plugin_setting('KICAD_INCLUDE_UNITS_IN_PARAMETERS', True))
 
         for parameter in part.parameters.all():
             # Exclude any which have already been used for default KiCad fields
@@ -466,10 +466,12 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
             },
         }
 
-        if self.get_plugin_setting('KICAD_ENABLE_MANUFACTURER_DATA', False):
-            return kicad_default_fields | self.get_supplier_part_fields(part) | self.get_custom_fields(part, list(kicad_default_fields.keys()))
-        else:
-            return kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
+        fields = kicad_default_fields | self.get_custom_fields(part, list(kicad_default_fields.keys()))
+
+        if str2bool(self.get_plugin_setting('KICAD_ENABLE_MANUFACTURER_DATA', False)):
+            fields = fields | self.get_supplier_part_fields(part)
+
+        return fields
 
     def get_exclude_from_bom(self, part):
         """Return whether or not the part should be excluded from the bom.
