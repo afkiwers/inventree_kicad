@@ -2,8 +2,8 @@ import logging
 
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
-from django.db.models import ExpressionWrapper, F, DecimalField
-from django.db.models.functions import Greatest
+from django.db.models import ExpressionWrapper, F, DecimalField, OuterRef, Subquery, Value
+from django.db.models.functions import Coalesce, Greatest
 
 from rest_framework import serializers
 from rest_framework.reverse import reverse_lazy
@@ -613,6 +613,7 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
 
         # In-stock quantity should be annotated to the queryset
         stock_count = getattr(part, 'unallocated_stock', 0)
+        supplier_available = getattr(part, 'supplier_available', 0)
 
         if self.enable_stock_count:
             try:
@@ -620,8 +621,9 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
                     name=part.name,
                     IPN=part.IPN,
                     description=part.description,
-                    stock=stock_count,
-                    revision=part.revision
+                    stock=decimal2string(stock_count),
+                    revision=part.revision,
+                    available=decimal2string(supplier_available)
                 )
 
                 description = self.stock_count_format.format(part.description, decimal2string(stock_count), part=part_).strip()
@@ -659,6 +661,22 @@ class KicadPreviewPartSerializer(serializers.ModelSerializer):
                     output_field=DecimalField(),
                 ),
                 0,
+                output_field=DecimalField(),
+            )
+        )
+
+        # Annotate with the quantity the primary supplier has available, as
+        # opposed to unallocated_stock above, which is what the user holds.
+        queryset = queryset.annotate(
+            supplier_available=Coalesce(
+                Subquery(
+                    SupplierPart.objects.filter(
+                        part=OuterRef('pk'),
+                        primary=True,
+                        active=True,
+                    ).values('available')[:1]
+                ),
+                Value(0),
                 output_field=DecimalField(),
             )
         )
