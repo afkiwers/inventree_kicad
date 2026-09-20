@@ -1,14 +1,12 @@
-import time
+
+from django.shortcuts import get_object_or_404
 
 from rest_framework import generics, permissions, response, views
-
-from InvenTree.helpers import str2bool
-from part.models import PartCategory, Part
-
 from rest_framework import viewsets as rest_viewsets
 
+from InvenTree.helpers import str2bool
 from inventree_kicad import serializers
-from django.shortcuts import get_object_or_404
+from part.models import Part, PartCategory
 
 
 class Index(views.APIView):
@@ -20,7 +18,6 @@ class Index(views.APIView):
 
     def get(self, request, *args, **kwargs):
         """Provide an index of the available endpoints"""
-
         # Get the base URL for the request, and construct secondary urls based on this
         # TODO: There is probably a better way of handling this!
         base_url = request.build_absolute_uri('/plugin/kicad-library-plugin/v1/')
@@ -40,14 +37,13 @@ class CategoryApi(rest_viewsets.ViewSet):
 
     def get_serializer(self, *args, **kwargs):
         """Add the parent plugin instance to the serializer contenxt"""
-
         kwargs['context'] = {'request': self.request}
 
         return self.serializer_class(*args, **kwargs)
 
     def get_part_parameter_id_by_name(self, name):
         from common.models import ParameterTemplate
-        
+
         ret = None
         part_parameter = None
 
@@ -64,12 +60,12 @@ class CategoryApi(rest_viewsets.ViewSet):
 
     def list(self, request):
         from .models import SelectedCategory
-        
+
         queryset = SelectedCategory.objects.all()
         serializer = serializers.KicadDetailedCategorySerializer(queryset, many=True)
 
         return response.Response(serializer.data)
-    
+
     def retrieve(self, request, pk=None):
         from .models import SelectedCategory
 
@@ -77,10 +73,10 @@ class CategoryApi(rest_viewsets.ViewSet):
         serializer = serializers.KicadDetailedCategorySerializer(category)
 
         return response.Response(serializer.data)
-    
+
     def partial_update(self, request, pk=None):
         return self.update(request, pk, partial=True)
-    
+
     def update(self, request, pk=None, **kwargs):
         from .models import SelectedCategory
 
@@ -121,7 +117,7 @@ class CategoryApi(rest_viewsets.ViewSet):
         serializer = serializers.KicadDetailedCategorySerializer(created_category)
 
         return response.Response(serializer.data)
-    
+
     def destroy(self, request, pk):
         from .models import SelectedCategory
 
@@ -138,7 +134,6 @@ class CategoryList(generics.ListAPIView):
 
     def get_queryset(self):
         """Return only PartCategory objects which are mapped to a SelectedCategory"""
-
         from .models import SelectedCategory
 
         category_ids = SelectedCategory.objects.all().values_list('category_id', flat=True)
@@ -154,7 +149,6 @@ class PartMixin:
 
     def get_queryset(self):
         """Return an appropriately pre-fetched queryset."""
-
         queryset = super().get_queryset()
 
         queryset = queryset.prefetch_related(
@@ -168,7 +162,6 @@ class PartMixin:
 
     def get_serializer(self, *args, **kwargs):
         """Add the parent plugin instance to the serializer contenxt"""
-
         kwargs['plugin'] = self.kwargs['plugin']
         kwargs['context'] = {'request': self.request}
 
@@ -185,7 +178,6 @@ class PartsPreviewList(PartMixin, generics.ListAPIView):
         We check if the plugin setting KICAD_ENABLE_SUBCATEGORY is enabled,
         to determine if sub-category parts should be returned also
         """
-
         queryset = super().get_queryset()
 
         category_id = self.kwargs.get('id', None)

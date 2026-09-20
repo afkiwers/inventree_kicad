@@ -1,5 +1,6 @@
 import logging
 from decimal import Decimal
+from types import SimpleNamespace
 
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
@@ -7,24 +8,25 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.reverse import reverse_lazy
 
-
-from InvenTree.helpers_model import construct_absolute_url
-from part.filters import annotate_total_stock, annotate_sales_order_allocations, annotate_build_order_allocations, annotate_variant_quantity, variant_stock_query
-from part.models import Part, PartCategory
 from company.models import ManufacturerPart, SupplierPart
-from InvenTree.helpers import str2bool, decimal2string
+from InvenTree.helpers import decimal2string, str2bool
+from InvenTree.helpers_model import construct_absolute_url
+from part.filters import (
+    annotate_build_order_allocations,
+    annotate_sales_order_allocations,
+    annotate_total_stock,
+    annotate_variant_quantity,
+    variant_stock_query,
+)
+from part.models import Part, PartCategory
 
-from .models import SelectedCategory, FootprintParameterMapping
-
-from types import SimpleNamespace
-
+from .models import FootprintParameterMapping, SelectedCategory
 
 logger = logging.getLogger('inventree')
 
 
 def _determine_part_name(part, use_ipn: bool = False) -> str:
     """Resolve part name for KiCad based on plugin setting."""
-
     return part.IPN or part.name if use_ipn else part.name
 
 
@@ -41,7 +43,6 @@ class KicadPartSerializer(serializers.ModelSerializer):
         As we need to have access to the parent plugin instance,
         we pass it in via the kwargs.
         """
-
         self.plugin = kwargs.pop('plugin')
         super().__init__(*args, **kwargs)
 
@@ -95,7 +96,6 @@ class KicadPartSerializer(serializers.ModelSerializer):
         turned each of these (already subquery-heavy) annotations into 2-3 copies of
         themselves per part in the generated query.
         """
-
         in_stock = Decimal(part.in_stock or 0)
         variant_stock = Decimal(str(part.variant_stock or 0))
         allocated_to_sales_orders = Decimal(part.allocated_to_sales_orders or 0)
@@ -112,7 +112,6 @@ class KicadPartSerializer(serializers.ModelSerializer):
         This will extract stock information and add it to a separate key variable which
         can be displayed inside the symbol picker
         """
-
         # In-stock quantity should be annotated to the queryset
         stock_count = self.get_unallocated_stock(part)
 
@@ -129,7 +128,6 @@ class KicadPartSerializer(serializers.ModelSerializer):
         This will allow users to display stock information
         if they enable it.
         """
-
         if not hasattr(self, 'enable_stock_count'):
             self.enable_stock_count = str2bool(self.plugin.get_setting('KICAD_ENABLE_STOCK_COUNT', False))
 
@@ -163,7 +161,6 @@ class KicadPartSerializer(serializers.ModelSerializer):
         Here, we cache the entire plugin settings dict on first access,
         to reduce the number of database hits.
         """
-
         if not hasattr(self, '_plugin_settings'):
             self._plugin_settings = self.plugin.get_settings_dict()
 
@@ -174,7 +171,6 @@ class KicadPartSerializer(serializers.ModelSerializer):
 
         If there are multiple possible associations, return the "deepest" one.
         """
-
         if not hasattr(self, '_kicad_category_cache'):
             self._kicad_category_cache = {}
 
@@ -202,10 +198,9 @@ class KicadPartSerializer(serializers.ModelSerializer):
         - If the parameter template is not specified, return empty string
         - If the part does not have a matching parameter, return empty string
         """
-
         if template_id in [None, '']:
             return backup_value
-        
+
         # Find a matching parameter
         # Note: We have already pre-fetched the parameters, so it is cheaper to iterate in Python
         for param in part.parameters:
@@ -221,7 +216,6 @@ class KicadPartSerializer(serializers.ModelSerializer):
         - First, check if the part has a reference assigned (via parameter)
         - Otherwise, fallback to the default reference for the KiCad Category
         """
-
         # Default value is "X"
         reference = "X"
 
@@ -242,7 +236,6 @@ class KicadPartSerializer(serializers.ModelSerializer):
         - First, check if the part has a symbol assigned (via parameter)
         - Otherwise, fallback to the default symbol for the KiCad Category
         """
-
         # By default, empty (unspecified) symbol value
         symbol = ''
 
@@ -285,7 +278,6 @@ class KicadPartSerializer(serializers.ModelSerializer):
         - Then, check if there is a valid footprint mapping
         - Otherwise, fallback to the default footprint for the KiCad Category
         """
-
         footprint = ""
         footprint_mappings = None
         template_id = None
@@ -318,7 +310,6 @@ class KicadPartSerializer(serializers.ModelSerializer):
         Results are cached per-category on this serializer instance, as the
         same (reused) instance handles every part in the response list.
         """
-
         if not hasattr(self, '_footprint_mappings_cache'):
             self._footprint_mappings_cache = {}
 
@@ -335,7 +326,6 @@ class KicadPartSerializer(serializers.ModelSerializer):
         Here, we look at the attachments associated with the part,
         and return the first one which has a comment matching "datasheet"
         """
-
         if not hasattr(self, '_datasheet_cache'):
             self._datasheet_cache = self._build_datasheet_cache()
 
@@ -357,7 +347,6 @@ class KicadPartSerializer(serializers.ModelSerializer):
         This serializer instance is reused across the whole response list, so a
         single query here replaces what would otherwise be one query per part.
         """
-
         from common.models import Attachment
 
         # For a list response, `self.parent` is the wrapping ListSerializer,
@@ -393,7 +382,6 @@ class KicadPartSerializer(serializers.ModelSerializer):
         If the part value has been specified via parameter, return that.
         Otherwise, simply return the name of the part
         """
-
         # Return IPN as value if desired
         if self.get_plugin_setting('KICAD_INCLUDE_IPN') == 'include_as_value':
             return str(part.IPN)
@@ -422,7 +410,6 @@ class KicadPartSerializer(serializers.ModelSerializer):
 
         Here, we return all the part parameters which are not already used
         """
-
         excluded_templates = [
             self.get_plugin_setting('KICAD_SYMBOL_PARAMETER', None),
             self.get_plugin_setting('KICAD_FOOTPRINT_PARAMETER', None),
@@ -518,10 +505,9 @@ class KicadPartSerializer(serializers.ModelSerializer):
             }
 
         return fields
-    
+
     def get_supplier_part_fields(self, part):
         """Return a set of fields for supplier and manufacturer information to be used in the KiCad symbol library"""
-
         manufacturer_parts = ManufacturerPart.objects.filter(part=part.pk).prefetch_related('supplier_parts')
 
         supplier_parts_used = set()
@@ -548,7 +534,7 @@ class KicadPartSerializer(serializers.ModelSerializer):
                 # get supplier and SKU
                 supplier_name = sp_part.supplier.name if sp_part and sp_part.supplier else ''
                 supplier_sku = sp_part.SKU if sp_part else ''
-                
+
                 # create fields for supplier and SKU
                 kicad_fields[f'Supplier_{mp_idx + 1}_{sp_idx + 1}'] = {
                     'value': supplier_name,
@@ -579,12 +565,11 @@ class KicadPartSerializer(serializers.ModelSerializer):
                 'value': supplier_sku,
                 'visible': 'False'
             }
-               
+
         return kicad_fields
 
     def get_kicad_fields(self, part):
         """Return a set of fields to be used in the KiCad symbol library"""
-
         # Default KiCad Fields
         kicad_default_fields = {
             'value': {
@@ -625,7 +610,6 @@ class KicadPartSerializer(serializers.ModelSerializer):
         If the part exclusion has been specified via parameter, return that.
         Otherwise, simply return false
         """
-
         # Fallback to not exclude
         value = 'False'
 
@@ -642,7 +626,6 @@ class KicadPartSerializer(serializers.ModelSerializer):
         If the part exclusion has been specified via parameter, return that.
         Otherwise, simply return false
         """
-
         # Fallback to not exclude
         value = 'False'
 
@@ -659,7 +642,6 @@ class KicadPartSerializer(serializers.ModelSerializer):
         If the part exclusion has been specified via parameter, return that.
         Otherwise, simply return false
         """
-
         # Fallback to not exclude
         value = 'False'
 
@@ -684,7 +666,6 @@ class KicadPartSerializer(serializers.ModelSerializer):
         in the generated SQL. Chaining a couple more annotations like that turned
         each of these into 2-3 copies of themselves per part in the query plan.
         """
-
         variant_query = variant_stock_query()
         queryset = queryset.annotate(
             in_stock=annotate_total_stock(),
@@ -729,7 +710,7 @@ class KicadDetailedCategorySerializer(serializers.ModelSerializer):
         ]
 
     def __init__(self, *args, **kwargs):
-        super(KicadDetailedCategorySerializer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         request = self.context.get('request')
         if request and request.method in ["POST", "PUT", "PATCH"]:
             self.Meta.depth = 0
