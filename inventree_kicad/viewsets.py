@@ -1,12 +1,10 @@
-
 from django.shortcuts import get_object_or_404
-
+from InvenTree.helpers import str2bool
+from part.models import Part, PartCategory
 from rest_framework import generics, permissions, response, views
 from rest_framework import viewsets as rest_viewsets
 
-from InvenTree.helpers import str2bool
 from inventree_kicad import serializers
-from part.models import Part, PartCategory
 
 
 class Index(views.APIView):
@@ -20,24 +18,25 @@ class Index(views.APIView):
         """Provide an index of the available endpoints"""
         # Get the base URL for the request, and construct secondary urls based on this
         # TODO: There is probably a better way of handling this!
-        base_url = request.build_absolute_uri('/plugin/kicad-library-plugin/v1/')
+        base_url = request.build_absolute_uri("/plugin/kicad-library-plugin/v1/")
 
         return response.Response(
             data={
-                'categories': base_url + 'categories/',
-                'parts': base_url + 'parts/',
+                "categories": base_url + "categories/",
+                "parts": base_url + "parts/",
             }
         )
 
 
 class CategoryApi(rest_viewsets.ViewSet):
     from .models import SelectedCategory
+
     queryset = SelectedCategory.objects.all()
     serializer_class = serializers.KicadDetailedCategorySerializer
 
     def get_serializer(self, *args, **kwargs):
         """Add the parent plugin instance to the serializer contenxt"""
-        kwargs['context'] = {'request': self.request}
+        kwargs["context"] = {"request": self.request}
 
         return self.serializer_class(*args, **kwargs)
 
@@ -82,11 +81,18 @@ class CategoryApi(rest_viewsets.ViewSet):
 
         category = get_object_or_404(SelectedCategory, pk=pk)
 
-        for parameter in ['default_value_parameter_template', 'footprint_parameter_template']:
+        for parameter in [
+            "default_value_parameter_template",
+            "footprint_parameter_template",
+        ]:
             if parameter in request.data:
-                request.data[parameter] = self.get_part_parameter_id_by_name(request.data.pop(parameter))
+                request.data[parameter] = self.get_part_parameter_id_by_name(
+                    request.data.pop(parameter)
+                )
 
-        serializer = self.get_serializer(category, data=request.data, partial=kwargs.get('partial', False))
+        serializer = self.get_serializer(
+            category, data=request.data, partial=kwargs.get("partial", False)
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -96,20 +102,25 @@ class CategoryApi(rest_viewsets.ViewSet):
         from common.models import ParameterTemplate
         from part.models import PartCategory
 
-        part_category = get_object_or_404(PartCategory, pk=request.data.get('category'))
+        part_category = get_object_or_404(PartCategory, pk=request.data.get("category"))
 
         validated_data = {
             "category": part_category,
-            "default_symbol": request.data.get('default_symbol', ''),
-            "default_footprint": request.data.get('default_footprint', ''),
-            "default_reference": request.data.get('default_reference', ''),
+            "default_symbol": request.data.get("default_symbol", ""),
+            "default_footprint": request.data.get("default_footprint", ""),
+            "default_reference": request.data.get("default_reference", ""),
         }
 
         # Add ParameterTemplate keys
         # Allow passing the parameter name instead of the id
-        for parameter in ['default_value_parameter_template', 'footprint_parameter_template']:
-            key = 'name' if isinstance(request.data.get(parameter), str) else 'pk'
-            validated_data[parameter] = ParameterTemplate.objects.filter(**{key: request.data.get(parameter)}).first()
+        for parameter in [
+            "default_value_parameter_template",
+            "footprint_parameter_template",
+        ]:
+            key = "name" if isinstance(request.data.get(parameter), str) else "pk"
+            validated_data[parameter] = ParameterTemplate.objects.filter(**{
+                key: request.data.get(parameter)
+            }).first()
 
         serializer = serializers.KicadDetailedCategorySerializer()
         created_category = serializer.create(validated_data)
@@ -136,7 +147,9 @@ class CategoryList(generics.ListAPIView):
         """Return only PartCategory objects which are mapped to a SelectedCategory"""
         from .models import SelectedCategory
 
-        category_ids = SelectedCategory.objects.all().values_list('category_id', flat=True)
+        category_ids = SelectedCategory.objects.all().values_list(
+            "category_id", flat=True
+        )
 
         return PartCategory.objects.filter(pk__in=category_ids)
 
@@ -152,17 +165,17 @@ class PartMixin:
         queryset = super().get_queryset()
 
         queryset = queryset.prefetch_related(
-            'category',
-            'parameters_list',
-            'parameters_list__template',
+            "category",
+            "parameters_list",
+            "parameters_list__template",
         )
 
         return serializers.KicadPartSerializer.annotate_queryset(queryset)
 
     def get_serializer(self, *args, **kwargs):
         """Add the parent plugin instance to the serializer contenxt"""
-        kwargs['plugin'] = self.kwargs['plugin']
-        kwargs['context'] = {'request': self.request}
+        kwargs["plugin"] = self.kwargs["plugin"]
+        kwargs["context"] = {"request": self.request}
 
         return self.serializer_class(*args, **kwargs)
 
@@ -172,18 +185,18 @@ class PartsPreviewList(PartMixin, generics.ListAPIView):
 
     def get_queryset(self):
         """Return a list of parts in the specified category
-        
+
         We check if the plugin setting KICAD_ENABLE_SUBCATEGORY is enabled,
         to determine if sub-category parts should be returned also
         """
         queryset = super().get_queryset()
 
-        category_id = self.kwargs.get('id', None)
+        category_id = self.kwargs.get("id", None)
 
         # Get a reference to the plugin instance
-        plugin = self.kwargs['plugin']
+        plugin = self.kwargs["plugin"]
 
-        cascade = str2bool(plugin.get_setting('KICAD_ENABLE_SUBCATEGORY', False))
+        cascade = str2bool(plugin.get_setting("KICAD_ENABLE_SUBCATEGORY", False))
 
         category = PartCategory.objects.filter(id=category_id).first()
 
@@ -195,10 +208,10 @@ class PartsPreviewList(PartMixin, generics.ListAPIView):
             else:
                 queryset = queryset.filter(category=category)
 
-        if str2bool(plugin.get_setting('KICAD_HIDE_INACTIVE_PARTS', True)):
+        if str2bool(plugin.get_setting("KICAD_HIDE_INACTIVE_PARTS", True)):
             queryset = queryset.filter(active=True)
 
-        if str2bool(plugin.get_setting('KICAD_HIDE_TEMPLATE_PARTS', True)):
+        if str2bool(plugin.get_setting("KICAD_HIDE_TEMPLATE_PARTS", True)):
             queryset = queryset.filter(is_template=False)
 
         return queryset
