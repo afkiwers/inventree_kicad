@@ -1,0 +1,18 @@
+
+[tool.ruff]
+exclude = [
+    ".git",
+    "__pycache__",
+    "test.py",
+    "tests",
+    "venv",
+    "env",
+    ".venv",
+    ".env",
+]
+
+src=["inventree_kicad"]
+
+[tool.coverage.run]
+source = ["inventree_kicad"]
+omit = []
