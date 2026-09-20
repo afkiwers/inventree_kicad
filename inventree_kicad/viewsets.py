@@ -159,14 +159,12 @@ class PartMixin:
 
         return serializers.KicadPartSerializer.annotate_queryset(queryset)
 
-
     def get_serializer(self, *args, **kwargs):
         """Add the parent plugin instance to the serializer contenxt"""
         kwargs['plugin'] = self.kwargs['plugin']
         kwargs['context'] = {'request': self.request}
 
         return self.serializer_class(*args, **kwargs)
-
 
 
 class PartsPreviewList(PartMixin, generics.ListAPIView):
