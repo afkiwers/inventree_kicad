@@ -69,8 +69,8 @@ Once activated, you'll see a new plugin **KiCad Library Endpoint** on the left h
 
 ## Adding Categories to KiCad
 
-Navigate to the admin backend, and scroll down until you find the **INVENTREE_KICAD** section. Within this section, click on **KiCad Categories**.
-If the section is not visible, ensure you've enabled the "Enable URL integration" and "Enable app integration" options in the Plugin Settings and run a database migration.
+Navigate to the admin backend (URL: https://inventree.server.url/admin/inventree_kicad/), and scroll down until you find the **INVENTREE_KICAD** section. Within this section, click on **KiCad Categories**.
+If the section is not visible, ensure you've enabled the "Enable URL integration" and "Enable app integration" options in the Plugin Settings and run a database migration. If you still can't see those inventree_kicad tables, check your user; you might lack permissions to access those.
 
 ![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/admin_model.png)
 
