@@ -1,3 +1,6 @@
+[![PyPI](https://img.shields.io/pypi/v/inventree-kicad-plugin)](https://pypi.org/project/inventree-kicad-plugin/)
+[![CI](https://github.com/afkiwers/inventree-kicad-plugin/actions/workflows/style.yaml/badge.svg)](https://github.com/afkiwers/inventree-kicad-plugin/actions/workflows/style.yaml)
+
 # InvenTree KiCad - HTTP Library Plugin
 
 A KiCad Conform API endpoint plugin, designed for integration with [InvenTree](https://inventree.org), empowers users to seamlessly incorporate InvenTree parts into KiCad's parts library tool. Please note that this plugin exclusively offers metadata and necessitates the presence of corresponding symbol and footprint libraries within the KiCad EDA environment.
