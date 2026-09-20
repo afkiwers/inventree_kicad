@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 from django.contrib import admin
-from .models import SelectedCategory, FootprintParameterMapping, ProgressIndicator
+
+from .models import FootprintParameterMapping, ProgressIndicator, SelectedCategory
 
 
 class FootprintParameterMappingAdmin(admin.TabularInline):
@@ -18,9 +16,9 @@ class SelectedCategoryAdmin(admin.ModelAdmin):
     list_per_page = 25
 
     autocomplete_fields = [
-        'category',
-        'default_value_parameter_template',
-        'footprint_parameter_template'
+        "category",
+        "default_value_parameter_template",
+        "footprint_parameter_template",
     ]
 
 

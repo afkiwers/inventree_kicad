@@ -1,0 +1,32 @@
+
+[tool.ruff]
+exclude = [
+    ".git",
+    "__pycache__",
+    "test.py",
+    "tests",
+    "venv",
+    "env",
+    ".venv",
+    ".env",
+]
+
+src=["inventree_kicad"]
+
+[tool.ruff.lint]
+ignore = [
+    "N999",
+    # - N999 - invalid-module-name
+    "RUF012",
+    # - RUF012 - mutable-class-default
+    "BLE001",
+    # - BLE001 - blind-except
+    "S110",
+    # - S110 - try-except-pass
+    "SIM102",
+    # - SIM102 - collapsible-if
+]
+
+[tool.coverage.run]
+source = ["inventree_kicad"]
+omit = []
