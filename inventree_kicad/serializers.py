@@ -1,9 +1,8 @@
 import logging
+from decimal import Decimal
 
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
-from django.db.models import ExpressionWrapper, F, DecimalField
-from django.db.models.functions import Greatest
 
 from rest_framework import serializers
 from rest_framework.reverse import reverse_lazy
@@ -29,8 +28,8 @@ def _determine_part_name(part, use_ipn: bool = False) -> str:
     return part.IPN or part.name if use_ipn else part.name
 
 
-class KicadDetailedPartSerializer(serializers.ModelSerializer):
-    """Custom model serializer for a single KiCad part instance"""
+class KicadPartSerializer(serializers.ModelSerializer):
+    """Custom model serializer for a single KiCad part instance."""
 
     def get_api_url(self):
         """Return the API url associated with this serializer"""
@@ -53,15 +52,13 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
+            'description',
             'symbolIdStr',
+            'stock',
+            'fields',
             'exclude_from_bom',
             'exclude_from_board',
             'exclude_from_sim',
-            # Note: this is added due to a regression starting after KiCad 9.0.4.
-            # Description fields for placed parts don't populated without this.
-            # See https://gitlab.com/kicad/code/kicad/-/issues/22043#note_2955901707
-            'description',
-            'fields',
         ]
 
     # Serializer field definitions
@@ -70,9 +67,10 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
     exclude_from_bom = serializers.SerializerMethodField('get_exclude_from_bom')
     exclude_from_board = serializers.SerializerMethodField('get_exclude_from_board')
     exclude_from_sim = serializers.SerializerMethodField('get_exclude_from_sim')
-    description = serializers.CharField(read_only=True)
-    name = serializers.SerializerMethodField('get_name')
 
+    name = serializers.SerializerMethodField('get_name')
+    description = serializers.SerializerMethodField('get_description')
+    stock = serializers.SerializerMethodField('get_stock')
     fields = serializers.SerializerMethodField('get_kicad_fields')
 
     def get_name(self, part):
@@ -84,6 +82,81 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         return _determine_part_name(part, self.use_ipn)
 
+    @staticmethod
+    def get_unallocated_stock(part):
+        """Compute the 'unallocated stock' quantity for the given part instance.
+
+        The underlying quantities (in_stock, variant_stock, allocated_to_sales_orders,
+        allocated_to_build_orders) are annotated onto the queryset as raw subquery
+        aggregates. This final combination is deliberately done in Python rather than
+        as further chained `.annotate()` calls: Django cannot reference a SELECT alias
+        from within the same query, so each `F('in_stock')`-style reference in a later
+        annotation gets the *entire* originating subquery re-inlined into the SQL. That
+        turned each of these (already subquery-heavy) annotations into 2-3 copies of
+        themselves per part in the generated query.
+        """
+
+        in_stock = Decimal(part.in_stock or 0)
+        variant_stock = Decimal(str(part.variant_stock or 0))
+        allocated_to_sales_orders = Decimal(part.allocated_to_sales_orders or 0)
+        allocated_to_build_orders = Decimal(part.allocated_to_build_orders or 0)
+
+        total_in_stock = in_stock + variant_stock
+        unallocated_stock = total_in_stock - allocated_to_sales_orders - allocated_to_build_orders
+
+        return max(unallocated_stock, Decimal(0))
+
+    def get_stock(self, part):
+        """Custom name function.
+
+        This will extract stock information and add it to a separate key variable which
+        can be displayed inside the symbol picker
+        """
+
+        # In-stock quantity should be annotated to the queryset
+        stock_count = self.get_unallocated_stock(part)
+
+        try:
+            stock_count = decimal2string(stock_count)
+        except Exception as e:
+            logger.exception("Failed to format stock count: %s", e)
+
+        return stock_count
+
+    def get_description(self, part):
+        """Custom name function.
+
+        This will allow users to display stock information
+        if they enable it.
+        """
+
+        if not hasattr(self, 'enable_stock_count'):
+            self.enable_stock_count = str2bool(self.plugin.get_setting('KICAD_ENABLE_STOCK_COUNT', False))
+
+        if not hasattr(self, 'stock_count_format'):
+            self.stock_count_format = self.plugin.get_setting("KICAD_ENABLE_STOCK_COUNT_FORMAT", False)
+
+        description = part.description
+
+        # In-stock quantity should be annotated to the queryset
+        stock_count = self.get_unallocated_stock(part)
+
+        if self.enable_stock_count:
+            try:
+                part_ = SimpleNamespace(
+                    name=part.name,
+                    IPN=part.IPN,
+                    description=part.description,
+                    stock=stock_count,
+                    revision=part.revision
+                )
+
+                description = self.stock_count_format.format(part.description, decimal2string(stock_count), part=part_).strip()
+            except Exception as e:
+                logger.exception("Failed to format stock count: %s", e)
+
+        return description
+
     def get_plugin_setting(self, key, default=None):
         """Helper function to get plugin settings.
         
@@ -91,14 +164,10 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         to reduce the number of database hits.
         """
 
-        settings_dict = getattr(self, '_plugin_settings', self.plugin.get_settings_dict())
+        if not hasattr(self, '_plugin_settings'):
+            self._plugin_settings = self.plugin.get_settings_dict()
 
-        val = settings_dict.get(key, default)
-
-        # Cache the settings dict for future use
-        setattr(self, '_plugin_settings', settings_dict)
-
-        return val
+        return self._plugin_settings.get(key, default)
 
     def get_kicad_category(self, part):
         """For the provided part instance, find the associated SelectedCategory instance.
@@ -106,21 +175,26 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         If there are multiple possible associations, return the "deepest" one.
         """
 
-        # Prevent duplicate lookups
-        if hasattr(self, 'kicad_category'):
-            return self.kicad_category
+        if not hasattr(self, '_kicad_category_cache'):
+            self._kicad_category_cache = {}
 
         # If the selected part does not have a category, return None
-        if not part.category:
+        if not part.category_id:
             return None
+
+        # Prevent duplicate lookups for parts which share the same category
+        if part.category_id in self._kicad_category_cache:
+            return self._kicad_category_cache[part.category_id]
 
         # Get the category tree for the selected part
         categories = part.category.get_ancestors(include_self=True)
 
-        self.kicad_category = SelectedCategory.objects.filter(category__in=categories).order_by(
+        kicad_category = SelectedCategory.objects.filter(category__in=categories).order_by(
             '-category__level').first()
 
-        return self.kicad_category
+        self._kicad_category_cache[part.category_id] = kicad_category
+
+        return kicad_category
 
     def get_parameter_value(self, part, template_id, backup_value=''):
         """Return the value of the specified parameter for the given part instance.
@@ -218,9 +292,7 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         if kicad_category := self.get_kicad_category(part):
             footprint = kicad_category.default_footprint
-            footprint_mappings = FootprintParameterMapping.objects.filter(
-                kicad_category=kicad_category,
-            )
+            footprint_mappings = self.get_footprint_mappings(kicad_category)
             template = kicad_category.footprint_parameter_template
 
             if template:
@@ -232,11 +304,30 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         footprint = self.get_parameter_value(part, template_id, backup_value=footprint)
 
         if footprint_mappings:
-            footprint_mapping = footprint_mappings.filter(parameter_value=footprint).first()
+            footprint_mapping = next(
+                (fm for fm in footprint_mappings if fm.parameter_value == footprint), None
+            )
             if footprint_mapping:
                 footprint = footprint_mapping.kicad_footprint
 
         return str(footprint)
+
+    def get_footprint_mappings(self, kicad_category):
+        """Return the list of FootprintParameterMapping objects for the given category.
+
+        Results are cached per-category on this serializer instance, as the
+        same (reused) instance handles every part in the response list.
+        """
+
+        if not hasattr(self, '_footprint_mappings_cache'):
+            self._footprint_mappings_cache = {}
+
+        if kicad_category.id not in self._footprint_mappings_cache:
+            self._footprint_mappings_cache[kicad_category.id] = list(
+                FootprintParameterMapping.objects.filter(kicad_category=kicad_category)
+            )
+
+        return self._footprint_mappings_cache[kicad_category.id]
 
     def get_datasheet(self, part):
         """Return the datasheet associated with this part.
@@ -245,7 +336,10 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         and return the first one which has a comment matching "datasheet"
         """
 
-        datasheet = part.attachments.filter(comment__iexact='datasheet').first()
+        if not hasattr(self, '_datasheet_cache'):
+            self._datasheet_cache = self._build_datasheet_cache()
+
+        datasheet = self._datasheet_cache.get(part.pk)
 
         if datasheet:
             try:
@@ -256,6 +350,42 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         # Default, return empty string
         return ""
+
+    def _build_datasheet_cache(self):
+        """Bulk-fetch the 'datasheet' attachment for every part being serialized.
+
+        This serializer instance is reused across the whole response list, so a
+        single query here replaces what would otherwise be one query per part.
+        """
+
+        from common.models import Attachment
+
+        # For a list response, `self.parent` is the wrapping ListSerializer,
+        # which holds the full page of part instances. For a single-part
+        # response (e.g. PartDetail), fall back to this serializer's instance.
+        parts = self.parent.instance if self.parent is not None else self.instance
+
+        if parts is None:
+            return {}
+
+        try:
+            part_ids = [obj.pk for obj in parts]
+        except TypeError:
+            part_ids = [parts.pk]
+
+        attachments = Attachment.objects.filter(
+            model_type='part',
+            model_id__in=part_ids,
+            comment__iexact='datasheet',
+        ).order_by('id')
+
+        cache = {}
+
+        for attachment in attachments:
+            # Match the original .first() semantics: keep the lowest-id match per part
+            cache.setdefault(attachment.model_id, attachment)
+
+        return cache
 
     def get_value(self, part):
         """Return the value associated with this part.
@@ -358,7 +488,12 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
         # Check if we should include the parameter units in custom parameters
         kicad_include_units_in_parameters = str2bool(self.get_plugin_setting('KICAD_INCLUDE_UNITS_IN_PARAMETERS', True))
 
-        for parameter in part.parameters.all():
+        # Note: `parameters_list` (and its `template`) is prefetched at the queryset
+        # level. Chaining `.prefetch_related(...)` here would clone the queryset and
+        # discard that prefetch cache, forcing a fresh DB query for every part.
+        parameters = part.parameters_list.all()
+
+        for parameter in parameters:
             # Exclude any which have already been used for default KiCad fields
             if str(parameter.template.pk) in excluded_templates:
                 continue
@@ -535,132 +670,27 @@ class KicadDetailedPartSerializer(serializers.ModelSerializer):
 
         return value
 
-
-class KicadPreviewPartSerializer(serializers.ModelSerializer):
-    """Simplified serializer for previewing each part in a category.
-
-    Simply returns the part ID and name.
-    """
-
-    class Meta:
-        """Metaclass defining serializer fields"""
-        model = Part
-
-        fields = [
-            'id',
-            'name',
-            'description',
-            'stock',
-        ]
-
-    def __init__(self, *args, **kwargs):
-        """Custom initialization for this serializer.
-
-        As we need to have access to the parent plugin instance,
-        we pass it in via the kwargs.
-        """
-
-        self.plugin = kwargs.pop('plugin')
-        super().__init__(*args, **kwargs)
-
-    id = serializers.CharField(source='pk', read_only=True)
-
-    description = serializers.SerializerMethodField('get_description')
-    stock = serializers.SerializerMethodField('get_stock')
-
-    name = serializers.SerializerMethodField('get_name')
-
-    def get_name(self, part):
-        # Use helper to reduce duplication
-
-        # Cache the 'use_ipn' setting
-        if not hasattr(self, 'use_ipn'):
-            self.use_ipn = str2bool(self.plugin.get_setting('KICAD_USE_IPN_AS_NAME', False))
-
-        return _determine_part_name(part, self.use_ipn)
-
-    def get_stock(self, part):
-        """Custom name function.
-
-        This will extract stock information and add it to a separate key variable which
-        can be displayed inside the symbol picker
-        """
-
-        # In-stock quantity should be annotated to the queryset
-        stock_count = getattr(part, 'unallocated_stock', 0)
-
-        try:
-            stock_count = decimal2string(stock_count)
-        except Exception as e:
-            logger.exception("Failed to format stock count: %s", e)
-
-        return stock_count
-
-    def get_description(self, part):
-        """Custom name function.
-
-        This will allow users to display stock information
-        if they enable it.
-        """
-
-        if not hasattr(self, 'enable_stock_count'):
-            self.enable_stock_count = str2bool(self.plugin.get_setting('KICAD_ENABLE_STOCK_COUNT', False))
-
-        if not hasattr(self, 'stock_count_format'):
-            self.stock_count_format = self.plugin.get_setting("KICAD_ENABLE_STOCK_COUNT_FORMAT", False)
-
-        description = part.description
-
-        # In-stock quantity should be annotated to the queryset
-        stock_count = getattr(part, 'unallocated_stock', 0)
-
-        if self.enable_stock_count:
-            try:
-                part_ = SimpleNamespace(
-                    name=part.name,
-                    IPN=part.IPN,
-                    description=part.description,
-                    stock=stock_count,
-                    revision=part.revision
-                )
-
-                description = self.stock_count_format.format(part.description, decimal2string(stock_count), part=part_).strip()
-            except Exception as e:
-                logger.exception("Failed to format stock count: %s", e)
-
-        return description
-
     @staticmethod
     def annotate_queryset(queryset):
-        """Add extra annotations to the queryset."""
+        """Add extra annotations to the queryset.
 
-        # Annotate with the total variant stock quantity
+        Note: We deliberately stop at these four raw annotations, and combine them
+        into 'unallocated stock' in Python (see get_unallocated_stock) rather than
+        with further chained `.annotate()` calls. Each of these is already a fairly
+        expensive correlated subquery, and Django re-inlines the full expression of
+        an earlier annotation wherever it's later referenced via F() - so a further
+        `total_in_stock = F('in_stock') + F('variant_stock')` (say) does not reuse
+        the already-computed `in_stock` column, it duplicates that entire subquery
+        in the generated SQL. Chaining a couple more annotations like that turned
+        each of these into 2-3 copies of themselves per part in the query plan.
+        """
+
         variant_query = variant_stock_query()
         queryset = queryset.annotate(
             in_stock=annotate_total_stock(),
             allocated_to_sales_orders=annotate_sales_order_allocations(),
             allocated_to_build_orders=annotate_build_order_allocations(),
             variant_stock=annotate_variant_quantity(variant_query, reference='quantity')
-        )
-
-        queryset = queryset.annotate(
-            total_in_stock=ExpressionWrapper(
-                F('in_stock') + F('variant_stock'),
-                output_field=DecimalField()
-            )
-        )
-
-        # Annotate with the total 'available stock' quantity
-        # This is the current stock, minus any allocations
-        queryset = queryset.annotate(
-            unallocated_stock=Greatest(
-                ExpressionWrapper(
-                    F('total_in_stock') - F('allocated_to_sales_orders') - F('allocated_to_build_orders'),
-                    output_field=DecimalField(),
-                ),
-                0,
-                output_field=DecimalField(),
-            )
         )
 
         return queryset

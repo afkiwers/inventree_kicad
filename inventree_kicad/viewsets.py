@@ -1,3 +1,5 @@
+import time
+
 from rest_framework import generics, permissions, response, views
 
 from InvenTree.helpers import str2bool
@@ -144,17 +146,38 @@ class CategoryList(generics.ListAPIView):
         return PartCategory.objects.filter(pk__in=category_ids)
 
 
-class PartsPreviewList(generics.ListAPIView):
-    """Preview list for all parts in a given category"""
+class PartMixin:
+    """Mixin class for Part viewsets."""
 
-    serializer_class = serializers.KicadPreviewPartSerializer
+    serializer_class = serializers.KicadPartSerializer
+    queryset = Part.objects.all()
+
+    def get_queryset(self):
+        """Return an appropriately pre-fetched queryset."""
+
+        queryset = super().get_queryset()
+
+        queryset = queryset.prefetch_related(
+            'category',
+            'parameters_list',
+            'parameters_list__template',
+        )
+
+        return serializers.KicadPartSerializer.annotate_queryset(queryset)
+
 
     def get_serializer(self, *args, **kwargs):
         """Add the parent plugin instance to the serializer contenxt"""
 
         kwargs['plugin'] = self.kwargs['plugin']
+        kwargs['context'] = {'request': self.request}
 
         return self.serializer_class(*args, **kwargs)
+
+
+
+class PartsPreviewList(PartMixin, generics.ListAPIView):
+    """Preview list for all parts in a given category"""
 
     def get_queryset(self):
         """Return a list of parts in the specified category
@@ -163,14 +186,14 @@ class PartsPreviewList(generics.ListAPIView):
         to determine if sub-category parts should be returned also
         """
 
+        queryset = super().get_queryset()
+
         category_id = self.kwargs.get('id', None)
 
         # Get a reference to the plugin instance
         plugin = self.kwargs['plugin']
 
         cascade = str2bool(plugin.get_setting('KICAD_ENABLE_SUBCATEGORY', False))
-
-        queryset = Part.objects.all()
 
         category = PartCategory.objects.filter(id=category_id).first()
 
@@ -188,27 +211,8 @@ class PartsPreviewList(generics.ListAPIView):
         if str2bool(plugin.get_setting('KICAD_HIDE_TEMPLATE_PARTS', True)):
             queryset = queryset.filter(is_template=False)
 
-        queryset = serializers.KicadPreviewPartSerializer.annotate_queryset(queryset)
-
         return queryset
 
 
-class PartDetail(generics.RetrieveAPIView):
-    """Detailed information endpoint for a single part instance.
-    
-    Here, the lookup id (pk) is the part id.
-    The custom plugin serializer formats the data into a KiCad compatible format.
-    """
-
-    serializer_class = serializers.KicadDetailedPartSerializer
-    queryset = Part.objects.all().prefetch_related(
-        'parameters_list',
-    )
-
-    def get_serializer(self, *args, **kwargs):
-        """Add the parent plugin instance to the serializer contenxt"""
-
-        kwargs['plugin'] = self.kwargs['plugin']
-        kwargs['context'] = {'request': self.request}
-
-        return self.serializer_class(*args, **kwargs)
+class PartDetail(PartMixin, generics.RetrieveAPIView):
+    """Detailed information endpoint for a single part instance."""
