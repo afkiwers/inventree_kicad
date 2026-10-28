@@ -111,7 +111,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             "model": "common.parametertemplate",
         },
         "KICAD_FIELD_VISIBILITY_PARAMETER_GLOBAL": {
-            "name": _("GLobal Field Visibility Parameter"),
+            "name": _("Global Field Visibility Parameter"),
             "description": _(
                 "Global version of KICAD_FIELD_VISIBILITY_PARAMETER; overridden if set locally."
             ),
