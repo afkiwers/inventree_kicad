@@ -7,8 +7,6 @@ A KiCad Conform API endpoint plugin, designed for integration with [InvenTree](h
 
 As of the current stage of development, KiCad exclusively offers read-only access to parts through the HTTP lib interface.
 
-However, this plugin provides a metadata import tool to import changes made within KiCad 7. Please note that KiCad 8 stopped supporting that though. This enables users to add footprints, symbols and datasheets to individual parts during the schematic design process if not already available and re-import that information into InvenTree to have it available for the next time.
-
 ## Compatibility Matrix
 
 > [!IMPORTANT]
@@ -322,10 +320,3 @@ The Symbol Chooser should open up and display the parts sourced from InvenTree.
 
 ![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/symbol_chooser.png)
 
-## Importing Metadata from Previous Projects
-
-Since KiCad does not offer a way to push information back to the server, InvenTree needs to have all that metadata such as footprints and symbols added manually. This can be very tedious, especially when there are thousands of parts.
-
-This plugin's import tool uses KiCad's intermediate file which is created whenever there is a BOM export. This file contains all the project's data which is needed.
-
-![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/kicad_meta_data_import.png)

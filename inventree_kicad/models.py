@@ -1,8 +1,6 @@
 """Models for Kicad Library Plugin."""
 
 from common.models import ParameterTemplate
-from django.contrib.auth.models import User
-from django.core import validators
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from part.models import PartCategory
@@ -104,32 +102,3 @@ class FootprintParameterMapping(models.Model):
             f"{self.kicad_category}: {self.parameter_value} -> {self.kicad_footprint}"
         )
 
-
-class ProgressIndicator(models.Model):
-    """Progress indicators which are used to display a loading bar inside a multiuser environment."""
-
-    class Meta:
-        app_label = "inventree_kicad"
-        verbose_name = "Progress Indicator"
-        verbose_name_plural = "Progress Indicators"
-
-    user = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        related_name="get_progress_bar_users",
-        verbose_name=_("Category"),
-    )
-
-    current_progress = models.IntegerField(
-        default=0,
-        validators=[validators.MinValueValidator(0), validators.MaxValueValidator(100)],
-        help_text=_("current progress"),
-    )
-
-    file_name = models.CharField(
-        max_length=100, default="", help_text=_("Name of currently processed file.")
-    )
-
-    def __str__(self):
-        """Default name string which is returned when object is called"""
-        return f"{self.user.username}"
