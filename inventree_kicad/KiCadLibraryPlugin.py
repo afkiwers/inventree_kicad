@@ -39,6 +39,9 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
     MIN_VERSION = "1.2.0"
     MAX_VERSION = "1.99.99"
 
+    # Custom settings panel (supplier selection), see static/kicad_settings.js
+    ADMIN_SOURCE = "kicad_settings.js"
+
     SETTINGS = {
         "KICAD_ENABLE_SUBCATEGORY": {
             "name": _("Enable Sub-Category Parts"),
@@ -178,6 +181,28 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
         },
     }
 
+    # Metadata key used to store the supplier filter.
+    # This is stored as plugin metadata (not a setting) so it does not show up in the settings list.
+    SUPPLIER_FILTER_KEY = "kicad_supplier_filter"
+
+    def get_supplier_filter(self) -> list[int]:
+        """Return the list of supplier IDs whose data is added to KiCad parts (empty = all)."""
+        value = self.plugin_config().get_metadata(self.SUPPLIER_FILTER_KEY, [])
+        return [int(x) for x in value or [] if str(x).isdigit()]
+
+    def set_supplier_filter(self, supplier_ids: list[int]):
+        """Store the list of supplier IDs whose data is added to KiCad parts."""
+        self.plugin_config().set_metadata(
+            self.SUPPLIER_FILTER_KEY, sorted({int(x) for x in supplier_ids})
+        )
+
+    def get_admin_context(self) -> dict:
+        """Context data for the custom settings panel."""
+        return {
+            "supplier_filter_url": f"/{self.base_url}api/supplier-filter/",
+            "enable_setting_url": f"/api/plugins/{self.slug}/settings/KICAD_ENABLE_MANUFACTURER_DATA/",
+        }
+
     def setup_urls(self):
         """Returns the URLs defined by this plugin."""
 
@@ -189,6 +214,12 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
         )
 
         api_urls = [
+            re_path(
+                r"^supplier-filter/$",
+                viewsets.SupplierFilter.as_view(),
+                {"plugin": self},
+                name="kicad-supplier-filter",
+            ),
             re_path("", include(api_category_router.urls)),
         ]
 
