@@ -547,10 +547,7 @@ class KicadPartSerializer(serializers.ModelSerializer):
         An empty set means that no filter is applied (all suppliers are allowed).
         """
         if not hasattr(self, "_allowed_supplier_ids"):
-            value = self.get_plugin_setting("KICAD_MANUFACTURER_DATA_SUPPLIERS", "")
-            self._allowed_supplier_ids = {
-                int(x) for x in str(value or "").split(",") if x.strip().isdigit()
-            }
+            self._allowed_supplier_ids = set(self.plugin.get_supplier_filter())
 
         return self._allowed_supplier_ids
 

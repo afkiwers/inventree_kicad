@@ -28,6 +28,38 @@ class Index(views.APIView):
         )
 
 
+class SupplierFilter(views.APIView):
+    """Read / update the list of suppliers whose data is added to KiCad parts.
+
+    - GET: return the selected supplier IDs
+    - PUT: replace the selected supplier IDs (an empty list means all suppliers)
+    """
+
+    permission_classes = [
+        permissions.IsAdminUser,
+    ]
+
+    def get(self, request, *args, **kwargs):
+        """Return the selected supplier IDs"""
+        plugin = kwargs["plugin"]
+        return response.Response({"suppliers": plugin.get_supplier_filter()})
+
+    def put(self, request, *args, **kwargs):
+        """Replace the selected supplier IDs"""
+        plugin = kwargs["plugin"]
+        suppliers = request.data.get("suppliers", [])
+
+        if not isinstance(suppliers, list) or not all(
+            str(x).isdigit() for x in suppliers
+        ):
+            return response.Response(
+                {"suppliers": "Expected a list of supplier IDs"}, status=400
+            )
+
+        plugin.set_supplier_filter(suppliers)
+        return response.Response({"suppliers": plugin.get_supplier_filter()})
+
+
 class CategoryApi(rest_viewsets.ViewSet):
     from .models import SelectedCategory
 
