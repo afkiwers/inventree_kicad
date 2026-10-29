@@ -39,6 +39,9 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
     MIN_VERSION = "1.2.0"
     MAX_VERSION = "1.99.99"
 
+    # Custom settings panel (supplier selection), see static/kicad_settings.js
+    ADMIN_SOURCE = "kicad_settings.js"
+
     SETTINGS = {
         "KICAD_ENABLE_SUBCATEGORY": {
             "name": _("Enable Sub-Category Parts"),
@@ -152,6 +155,14 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             "validator": bool,
             "default": False,
         },
+        "KICAD_MANUFACTURER_DATA_SUPPLIERS": {
+            "name": _("Manufacturer Data Suppliers"),
+            "description": _(
+                "Only supplier data from these suppliers is added to the KiCad parts. "
+                "Leave empty to include all suppliers. Use the 'Plugin Configuration' panel to select suppliers."
+            ),
+            "default": "",
+        },
         "KICAD_INCLUDE_UNITS_IN_PARAMETERS": {
             "name": _("Include Units in Parameters"),
             "description": _(
@@ -177,6 +188,13 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             "default": False,
         },
     }
+
+    def get_admin_context(self) -> dict:
+        """Context data for the custom settings panel."""
+        return {
+            "slug": self.slug,
+            "supplier_setting": "KICAD_MANUFACTURER_DATA_SUPPLIERS",
+        }
 
     def setup_urls(self):
         """Returns the URLs defined by this plugin."""

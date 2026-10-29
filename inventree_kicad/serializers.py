@@ -541,6 +541,24 @@ class KicadPartSerializer(serializers.ModelSerializer):
 
         return fields
 
+    def get_allowed_supplier_ids(self):
+        """Return the set of supplier IDs selected in the plugin settings.
+
+        An empty set means that no filter is applied (all suppliers are allowed).
+        """
+        if not hasattr(self, "_allowed_supplier_ids"):
+            value = self.get_plugin_setting("KICAD_MANUFACTURER_DATA_SUPPLIERS", "")
+            self._allowed_supplier_ids = {
+                int(x) for x in str(value or "").split(",") if x.strip().isdigit()
+            }
+
+        return self._allowed_supplier_ids
+
+    def is_supplier_allowed(self, supplier_part):
+        """Check if the supplier of the provided SupplierPart passes the supplier filter."""
+        allowed = self.get_allowed_supplier_ids()
+        return not allowed or supplier_part.supplier_id in allowed
+
     def get_supplier_part_fields(self, part):
         """Return a set of fields for supplier and manufacturer information to be used in the KiCad symbol library"""
         manufacturer_parts = ManufacturerPart.objects.filter(
@@ -566,7 +584,13 @@ class KicadPartSerializer(serializers.ModelSerializer):
                 "visible": "False",
             }
 
-            for sp_idx, sp_part in enumerate(mp_part.supplier_parts.all()):
+            supplier_parts = [
+                sp
+                for sp in mp_part.supplier_parts.all()
+                if self.is_supplier_allowed(sp)
+            ]
+
+            for sp_idx, sp_part in enumerate(supplier_parts):
                 supplier_parts_used.add(sp_part)
 
                 # get supplier and SKU
@@ -586,10 +610,13 @@ class KicadPartSerializer(serializers.ModelSerializer):
                 }
 
         # add any supplier parts that are not associated with a manufacturer part
-        for sp_idx, sp_part in enumerate(SupplierPart.objects.filter(part__pk=part.pk)):
-            if sp_part in supplier_parts_used:
-                continue
+        supplier_parts = [
+            sp
+            for sp in SupplierPart.objects.filter(part__pk=part.pk)
+            if sp not in supplier_parts_used and self.is_supplier_allowed(sp)
+        ]
 
+        for sp_idx, sp_part in enumerate(supplier_parts):
             supplier_parts_used.add(sp_part)
 
             supplier_name = (
