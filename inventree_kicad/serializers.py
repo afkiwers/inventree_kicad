@@ -526,6 +526,10 @@ class KicadPartSerializer(serializers.ModelSerializer):
             if parameter.template.name.lower() in excluded_field_names:
                 continue
 
+            # Skip empty parameters (e.g. created from category templates but never filled in)
+            if not str(parameter.data or "").strip():
+                continue
+
             is_visible = (
                 "True"
                 if parameter.template.name.lower().strip()
@@ -634,27 +638,14 @@ class KicadPartSerializer(serializers.ModelSerializer):
 
         supplier_parts_used = set()
         kicad_fields = {}
-        for mp_idx, mp_part in enumerate(manufacturer_parts):
-            # get manufacturer and MPN
-            manufacturer_name = (
-                mp_part.manufacturer.name if mp_part and mp_part.manufacturer else ""
-            )
-            manufacturer_mpn = mp_part.MPN if mp_part else ""
+        filter_active = bool(self.get_allowed_supplier_ids())
+        mp_idx = 0
 
-            # create fields for manufacturer and MPN
-            kicad_fields[f"Manufacturer_{mp_idx + 1}"] = {
-                "value": manufacturer_name,
-                "visible": "False",
-            }
-            kicad_fields[f"MPN_{mp_idx + 1}"] = {
-                "value": manufacturer_mpn,
-                "visible": "False",
-            }
+        for mp_part in manufacturer_parts:
+            all_supplier_parts = list(mp_part.supplier_parts.all())
 
             supplier_parts = [
-                sp
-                for sp in mp_part.supplier_parts.all()
-                if self.is_supplier_allowed(sp)
+                sp for sp in all_supplier_parts if self.is_supplier_allowed(sp)
             ]
 
             supplier_parts_used.update(supplier_parts)
@@ -662,9 +653,32 @@ class KicadPartSerializer(serializers.ModelSerializer):
                 kicad_fields, supplier_parts
             )
 
-            for sp_idx, sp_part in enumerate(supplier_parts):
-                supplier_parts_used.add(sp_part)
+            # Skip the manufacturer part if none of its supplier parts are left for the
+            # default fields, i.e. all suppliers were filtered out or have a custom field.
+            # Manufacturer parts without any supplier parts are only kept if no supplier
+            # filter is active.
+            if not supplier_parts and (filter_active or all_supplier_parts):
+                continue
 
+            mp_idx += 1
+
+            # get manufacturer and MPN
+            manufacturer_name = (
+                mp_part.manufacturer.name if mp_part and mp_part.manufacturer else ""
+            )
+            manufacturer_mpn = mp_part.MPN if mp_part else ""
+
+            # create fields for manufacturer and MPN
+            kicad_fields[f"Manufacturer_{mp_idx}"] = {
+                "value": manufacturer_name,
+                "visible": "False",
+            }
+            kicad_fields[f"MPN_{mp_idx}"] = {
+                "value": manufacturer_mpn,
+                "visible": "False",
+            }
+
+            for sp_idx, sp_part in enumerate(supplier_parts):
                 # get supplier and SKU
                 supplier_name = (
                     sp_part.supplier.name if sp_part and sp_part.supplier else ""
@@ -672,11 +686,11 @@ class KicadPartSerializer(serializers.ModelSerializer):
                 supplier_sku = sp_part.SKU if sp_part else ""
 
                 # create fields for supplier and SKU
-                kicad_fields[f"Supplier_{mp_idx + 1}_{sp_idx + 1}"] = {
+                kicad_fields[f"Supplier_{mp_idx}_{sp_idx + 1}"] = {
                     "value": supplier_name,
                     "visible": "False",
                 }
-                kicad_fields[f"SPN_{mp_idx + 1}_{sp_idx + 1}"] = {
+                kicad_fields[f"SPN_{mp_idx}_{sp_idx + 1}"] = {
                     "value": supplier_sku,
                     "visible": "False",
                 }
