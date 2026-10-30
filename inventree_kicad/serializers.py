@@ -2,8 +2,10 @@ import logging
 from decimal import Decimal
 from types import SimpleNamespace
 
-from company.models import ManufacturerPart, SupplierPart
+from common.models import Parameter
+from company.models import Company, ManufacturerPart, SupplierPart
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 from InvenTree.helpers import decimal2string, str2bool
 from InvenTree.helpers_model import construct_absolute_url
@@ -21,6 +23,16 @@ from rest_framework.reverse import reverse_lazy
 from .models import FootprintParameterMapping, SelectedCategory
 
 logger = logging.getLogger("inventree")
+
+# Default KiCad fields, which must not be overwritten by custom supplier fields
+KICAD_RESERVED_FIELDS = {
+    "value",
+    "footprint",
+    "datasheet",
+    "reference",
+    "description",
+    "keywords",
+}
 
 
 def _determine_part_name(part, use_ipn: bool = False) -> str:
@@ -556,6 +568,64 @@ class KicadPartSerializer(serializers.ModelSerializer):
         allowed = self.get_allowed_supplier_ids()
         return not allowed or supplier_part.supplier_id in allowed
 
+    def get_supplier_field_name(self, supplier_part):
+        """Return the custom KiCad field name for the supplier of the provided SupplierPart.
+
+        The field name is taken from the supplier (company) parameter selected in the
+        KICAD_SUPPLIER_FIELD_PARAMETER setting. Returns None if not configured / not set.
+        """
+        if not hasattr(self, "_supplier_field_names"):
+            self._supplier_field_names = {}
+            template_id = self.get_plugin_setting(
+                "KICAD_SUPPLIER_FIELD_PARAMETER", None
+            )
+
+            if template_id not in [None, ""]:
+                parameters = Parameter.objects.filter(
+                    model_type=ContentType.objects.get_for_model(Company),
+                    template_id=template_id,
+                )
+
+                self._supplier_field_names = {
+                    p.model_id: str(p.data).strip()
+                    for p in parameters
+                    if str(p.data or "").strip()
+                }
+
+        return self._supplier_field_names.get(supplier_part.supplier_id, None)
+
+    def add_custom_supplier_fields(self, kicad_fields, supplier_parts):
+        """Add custom supplier fields for supplier parts whose supplier defines a custom field name.
+
+        Returns the list of supplier parts which do *not* have a custom field (default handling).
+        """
+        remaining = []
+
+        for sp_part in supplier_parts:
+            field_name = self.get_supplier_field_name(sp_part)
+
+            # Never overwrite the default KiCad fields (value, footprint, ...)
+            if not field_name or field_name.lower() in KICAD_RESERVED_FIELDS:
+                remaining.append(sp_part)
+                continue
+
+            # Multiple supplier parts from the same supplier are combined into one field
+            values = [
+                v
+                for v in kicad_fields.get(field_name, {}).get("value", "").split(", ")
+                if v
+            ]
+
+            if sp_part.SKU and sp_part.SKU not in values:
+                values.append(sp_part.SKU)
+
+            kicad_fields[field_name] = {
+                "value": ", ".join(values),
+                "visible": "False",
+            }
+
+        return remaining
+
     def get_supplier_part_fields(self, part):
         """Return a set of fields for supplier and manufacturer information to be used in the KiCad symbol library"""
         manufacturer_parts = ManufacturerPart.objects.filter(
@@ -587,6 +657,11 @@ class KicadPartSerializer(serializers.ModelSerializer):
                 if self.is_supplier_allowed(sp)
             ]
 
+            supplier_parts_used.update(supplier_parts)
+            supplier_parts = self.add_custom_supplier_fields(
+                kicad_fields, supplier_parts
+            )
+
             for sp_idx, sp_part in enumerate(supplier_parts):
                 supplier_parts_used.add(sp_part)
 
@@ -612,6 +687,9 @@ class KicadPartSerializer(serializers.ModelSerializer):
             for sp in SupplierPart.objects.filter(part__pk=part.pk)
             if sp not in supplier_parts_used and self.is_supplier_allowed(sp)
         ]
+
+        supplier_parts_used.update(supplier_parts)
+        supplier_parts = self.add_custom_supplier_fields(kicad_fields, supplier_parts)
 
         for sp_idx, sp_part in enumerate(supplier_parts):
             supplier_parts_used.add(sp_part)

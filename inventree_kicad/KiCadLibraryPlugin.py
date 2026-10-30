@@ -155,6 +155,15 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             "validator": bool,
             "default": False,
         },
+        "KICAD_SUPPLIER_FIELD_PARAMETER": {
+            "name": _("Supplier Field Parameter"),
+            "description": _(
+                "Supplier (company) parameter which holds a custom KiCad field name, e.g. 'LCSC Part #'. "
+                "For suppliers with this parameter, the supplier part number is added under that field name "
+                "instead of the default Supplier_x / SPN_x fields."
+            ),
+            "model": "common.parametertemplate",
+        },
         "KICAD_INCLUDE_UNITS_IN_PARAMETERS": {
             "name": _("Include Units in Parameters"),
             "description": _(
