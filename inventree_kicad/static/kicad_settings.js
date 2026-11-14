@@ -7,8 +7,11 @@
  *   An empty selection means that all suppliers are included.
  * - Stock count display format: editor for the KICAD_ENABLE_STOCK_COUNT_FORMAT setting,
  *   with placeholder autocompletion and a live preview.
- * - KiCad field names: table which renames fields sent to KiCad (e.g. IPN -> SKU),
- *   stored as plugin metadata via the plugin's field-mapping API endpoint.
+ * - KiCad field mapping: table which renames fields sent to KiCad (e.g. IPN -> SKU) or fills
+ *   them from templates (e.g. {part.IPN} -> SKU), stored as plugin metadata via the plugin's
+ *   field-mapping API endpoint.
+ * - Templates ({part.*}, {param[...]}) get autocompletion, also in InvenTree's setting dialogs
+ *   for the stock count display format and the part name template.
  */
 
 function escapeHtml(text) {
@@ -26,18 +29,41 @@ const INPUT_STYLE = `padding: 6px 10px; border-radius: 4px;
     background: var(--mantine-color-body, #fff);
     color: var(--mantine-color-text, inherit);`;
 
-// Placeholders offered by the stock count format autocompletion (without the braces)
-const STOCK_PLACEHOLDERS = [
-    { text: '0', description: 'Part description' },
-    { text: '1', description: 'Unallocated stock' },
+// Placeholders for templates (without the braces), see templates.py
+const PART_PLACEHOLDERS = [
     { text: 'part.name', description: 'Part name' },
     { text: 'part.IPN', description: 'Internal part number' },
     { text: 'part.description', description: 'Part description' },
-    { text: 'part.stock', description: 'Unallocated stock (number)' },
-    { text: 'part.stock:.0f', description: 'Unallocated stock, no decimals' },
+    { text: 'part.keywords', description: 'Part keywords' },
     { text: 'part.revision', description: 'Part revision' },
+    { text: 'part.units', description: 'Part units' },
+    { text: 'part.link', description: 'External link' },
+    { text: 'part.category', description: 'Category path' },
+    { text: 'part.pk', description: 'Part ID' },
+    { text: 'part.stock', description: 'Unallocated stock (needs Display Available Stock)' },
+    { text: 'part.stock:.0f', description: 'Stock, no decimals (needs Display Available Stock)' },
     { text: 'part.used_in', description: 'Number of assemblies using this part (slower)' },
 ];
+
+// Stock count display format: also {0} and {1}
+const STOCK_PLACEHOLDERS = [
+    { text: '0', description: 'Part description' },
+    { text: '1', description: 'Unallocated stock' },
+    ...PART_PLACEHOLDERS,
+];
+
+// Field mapping templates and the part name template
+const TEMPLATE_PLACEHOLDERS = [...PART_PLACEHOLDERS];
+
+// Add {param[<name>]} for every parameter template (in place, so attached inputs see them too)
+function addParameterPlaceholders(names) {
+    const placeholders = (names ?? []).map((name) => ({ text: `param[${name}]`, description: 'Parameter' }));
+
+    [STOCK_PLACEHOLDERS, TEMPLATE_PLACEHOLDERS].forEach((list) => {
+        const known = new Set(list.map((p) => p.text));
+        list.push(...placeholders.filter((p) => !known.has(p.text)));
+    });
+}
 
 /**
  * Add placeholder autocompletion to a text input: typing "{" lists the placeholders,
@@ -70,7 +96,7 @@ function attachPlaceholderAutocomplete(input, placeholders) {
 
         const token = before.slice(open + 1);
 
-        if (!/^[\w.:]*$/.test(token)) {
+        if (/[{}]/.test(token)) {
             return null;
         }
 
@@ -269,6 +295,7 @@ export function renderPluginSettings(target, data) {
 
     // The regular settings list edits the format in a dialog: add the autocompletion there as well
     watchSettingDialog(target, context.stock_format_setting_name ?? 'Stock Count Display Format', STOCK_PLACEHOLDERS);
+    watchSettingDialog(target, context.name_template_setting_name ?? 'Part Name Template', TEMPLATE_PLACEHOLDERS);
 
     const supplierSection = target.querySelector('[data-role="supplier-section"]');
 
@@ -644,7 +671,9 @@ function renderStockFormatEditor(section, api, context) {
 }
 
 /**
- * Table which renames fields sent to KiCad (issue #169), e.g. IPN -> SKU.
+ * Field mapping table (issue #169). Each row either
+ * - renames a field sent to KiCad (e.g. IPN -> SKU), or
+ * - fills a KiCad field from a template (e.g. {part.IPN} -> SKU), if the source contains "{".
  * Without any rows, the fields are sent unchanged.
  */
 function renderFieldMappingEditor(section, api, context) {
@@ -659,17 +688,18 @@ function renderFieldMappingEditor(section, api, context) {
     section.innerHTML = `
     <div style="display: flex; flex-direction: column; gap: 8px;">
         <div>
-            <strong>KiCad Field Names</strong>
+            <strong>KiCad Field Mapping</strong>
             <div style="font-size: 0.85em; opacity: 0.75;">
-                Rename fields sent to KiCad, e.g. <code>IPN</code> &rarr; <code>SKU</code>.
-                Field names are matched case-insensitively. Without any rows, all fields keep their names.
+                Rename a field sent to KiCad (<code>IPN</code> &rarr; <code>SKU</code>), or fill a KiCad field
+                from a template (<code>{part.IPN}</code> &rarr; <code>SKU</code>, <code>{param[Tolerance]}</code> &rarr;
+                <code>Tol</code>). Type <code>{</code> for the available values. Without any rows, nothing changes.
                 Changes are saved automatically.
             </div>
         </div>
         <datalist id="${datalistId}"></datalist>
         <div data-role="rows" style="display: flex; flex-direction: column; gap: 6px;"></div>
         <div>
-            <button data-role="add" type="button" style="${BUTTON_STYLE}">Add field</button>
+            <button data-role="add" type="button" style="${BUTTON_STYLE}">Add row</button>
         </div>
         <div data-role="status" style="font-size: 0.85em; opacity: 0.75;">Loading field mapping...</div>
     </div>
@@ -680,6 +710,7 @@ function renderFieldMappingEditor(section, api, context) {
     const statusDiv = section.querySelector('[data-role="status"]');
     const addButton = section.querySelector('[data-role="add"]');
 
+    // Each row: { from, to, preview }, preview = example value of a saved template row
     let rows = [];
     let saveTimer = null;
     let saveSeq = 0;
@@ -688,9 +719,40 @@ function renderFieldMappingEditor(section, api, context) {
         statusDiv.textContent = text;
     }
 
+    function isTemplate(source) {
+        return source.includes('{');
+    }
+
+    // What a row does, shown below its inputs
+    function rowHint(row) {
+        const from = row.from.trim();
+        const to = row.to.trim();
+
+        if (!from || !to) {
+            return '';
+        }
+
+        if (!isTemplate(from)) {
+            return `Renames the field "${from}" to "${to}"`;
+        }
+
+        if (row.preview === undefined) {
+            return `Fills "${to}" from the template`;
+        }
+
+        return `Fills "${to}" - example: ${row.preview === '' ? '(empty)' : row.preview}`;
+    }
+
+    function updateHints() {
+        rowsDiv.querySelectorAll('[data-row]').forEach((rowDiv) => {
+            const row = rows[parseInt(rowDiv.dataset.row, 10)];
+            rowDiv.querySelector('[data-role="hint"]').textContent = row ? rowHint(row) : '';
+        });
+    }
+
     function renderRows() {
         if (rows.length === 0) {
-            rowsDiv.innerHTML = '<em style="font-size: 0.9em; opacity: 0.75;">No fields renamed</em>';
+            rowsDiv.innerHTML = '<em style="font-size: 0.9em; opacity: 0.75;">No fields mapped</em>';
             return;
         }
 
@@ -698,19 +760,26 @@ function renderFieldMappingEditor(section, api, context) {
             .map(
                 (row, i) => `<div data-row="${i}" style="display: flex; flex-direction: column; gap: 2px;">
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <input data-field="from" type="text" list="${datalistId}" autocomplete="off"
-                            placeholder="InvenTree field (e.g. IPN)" value="${escapeHtml(row.from)}"
-                            style="flex: 1; min-width: 0; ${INPUT_STYLE}" />
+                        <input data-field="from" type="text" list="${datalistId}" autocomplete="off" spellcheck="false"
+                            placeholder="Field (e.g. IPN) or template (e.g. {part.IPN})" value="${escapeHtml(row.from)}"
+                            style="flex: 1; min-width: 0; font-family: monospace; ${INPUT_STYLE}" />
                         <span style="opacity: 0.75;">&rarr;</span>
                         <input data-field="to" type="text" autocomplete="off"
                             placeholder="KiCad field (e.g. SKU)" value="${escapeHtml(row.to)}"
                             style="flex: 1; min-width: 0; ${INPUT_STYLE}" />
                         <button data-remove="${i}" type="button" title="Remove" style="${BUTTON_STYLE}">&times;</button>
                     </div>
+                    <div data-role="hint" style="font-size: 0.85em; opacity: 0.75;"></div>
                     <div data-role="error" style="font-size: 0.85em; color: var(--mantine-color-red-text, #e03131);"></div>
                 </div>`
             )
             .join('');
+
+        rowsDiv.querySelectorAll('[data-field="from"]').forEach((input) => {
+            attachPlaceholderAutocomplete(input, TEMPLATE_PLACEHOLDERS);
+        });
+
+        updateHints();
     }
 
     function showErrors(errors) {
@@ -733,15 +802,24 @@ function renderFieldMappingEditor(section, api, context) {
             showErrors({});
 
             api.put(mappingUrl, { mapping: complete.map(({ from, to }) => ({ from, to })) })
-                .then(() => {
+                .then((response) => {
                     if (seq !== saveSeq) {
                         return;
                     }
 
+                    // The saved rows are the complete rows, in the same order
+                    const previews = response.data?.previews ?? [];
+                    complete.forEach((row, i) => {
+                        if (rows[row.index]) {
+                            rows[row.index].preview = previews[i] ?? undefined;
+                        }
+                    });
+                    updateHints();
+
                     const incomplete = rows.length - complete.length;
                     setStatus(incomplete
                         ? `Saved - ${incomplete} incomplete row(s) not used yet`
-                        : `Saved - ${complete.length || 'no'} field(s) renamed`);
+                        : `Saved - ${complete.length || 'no'} field(s) mapped`);
                 })
                 .catch((error) => {
                     if (seq !== saveSeq) {
@@ -773,7 +851,10 @@ function renderFieldMappingEditor(section, api, context) {
         const field = event.target.dataset?.field;
 
         if (rowDiv && field) {
-            rows[parseInt(rowDiv.dataset.row, 10)][field] = event.target.value;
+            const row = rows[parseInt(rowDiv.dataset.row, 10)];
+            row[field] = event.target.value;
+            row.preview = undefined;
+            updateHints();
             save();
         }
     });
@@ -789,20 +870,30 @@ function renderFieldMappingEditor(section, api, context) {
     });
 
     addButton.addEventListener('click', () => {
-        rows.push({ from: '', to: '' });
+        rows.push({ from: '', to: '', preview: undefined });
         renderRows();
         rowsDiv.querySelector(`[data-row="${rows.length - 1}"] [data-field="from"]`)?.focus();
     });
 
     api.get(mappingUrl)
         .then((response) => {
-            rows = (response.data?.mapping ?? []).map((row) => ({ from: row.from, to: row.to }));
+            const previews = response.data?.previews ?? [];
+
+            rows = (response.data?.mapping ?? []).map((row, i) => ({
+                from: row.from,
+                to: row.to,
+                preview: previews[i] ?? undefined,
+            }));
+
             datalist.innerHTML = (response.data?.suggestions ?? [])
                 .map((name) => `<option value="${escapeHtml(name)}"></option>`)
                 .join('');
 
+            // {param[<name>]} for the templates here, the stock format and the part name template
+            addParameterPlaceholders(response.data?.parameters);
+
             renderRows();
-            setStatus(rows.length ? `${rows.length} field(s) renamed` : '');
+            setStatus(rows.length ? `${rows.length} field(s) mapped` : '');
         })
         .catch((error) => setStatus(`Error loading field mapping: ${error?.message ?? error}`));
 }

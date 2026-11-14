@@ -1,6 +1,3 @@
-from decimal import Decimal
-from types import SimpleNamespace
-
 from django.shortcuts import get_object_or_404
 from InvenTree.helpers import str2bool
 from part.models import Part, PartCategory
@@ -8,6 +5,13 @@ from rest_framework import generics, permissions, response, views
 from rest_framework import viewsets as rest_viewsets
 
 from inventree_kicad import serializers
+from inventree_kicad.templates import (
+    EXAMPLE_PARAMS,
+    EXAMPLE_PART,
+    EXAMPLE_STOCK,
+    preview_template,
+    template_error,
+)
 
 
 class Index(views.APIView):
@@ -64,11 +68,14 @@ class SupplierFilter(views.APIView):
 
 
 class FieldMapping(views.APIView):
-    """Read / update the field mapping, which renames fields sent to KiCad.
+    """Read / update the field mapping, which renames fields sent to KiCad or fills them from templates.
 
-    - GET: return the mapping and a list of known field names (for autocompletion)
+    - GET: return the mapping, a preview per row, the known field names and the parameter names
     - PUT: {"mapping": [{"from": str, "to": str}, ...]} replaces the mapping.
       Invalid rows return a 400 response with {"errors": {<row index>: <reason>}}
+
+    A row whose "from" contains '{' is a template (e.g. "{part.IPN}"), which fills the
+    field named in "to". Otherwise "from" is the name of a field which is renamed to "to".
     """
 
     permission_classes = [
@@ -87,18 +94,23 @@ class FieldMapping(views.APIView):
         "SPN_1",
     ]
 
-    def get_suggestions(self):
-        """Return the known field names: plugin fields and all parameter template names."""
+    @staticmethod
+    def get_parameter_names():
+        """Return the names of all parameter templates."""
         try:
             from common.models import ParameterTemplate
         except ImportError:  # pragma: no cover
             from part.models import PartParameterTemplate as ParameterTemplate
 
         names = set(ParameterTemplate.objects.values_list("name", flat=True))
+        return sorted((name for name in names if name), key=str.lower)
+
+    def get_suggestions(self, parameter_names):
+        """Return the known field names: plugin fields and parameter names."""
         names = {
             name
-            for name in names
-            if name and name.lower() not in serializers.KICAD_PROTECTED_FIELDS
+            for name in parameter_names
+            if name.lower() not in serializers.KICAD_PROTECTED_FIELDS
         }
 
         return self.PLUGIN_FIELD_NAMES + sorted(
@@ -106,7 +118,18 @@ class FieldMapping(views.APIView):
         )
 
     @staticmethod
-    def clean_mapping(rows):
+    def preview_row(row, stock_enabled):
+        """Example value for a template row (None for a rename row, or an invalid template)."""
+        if not serializers.is_template(row["from"]):
+            return None
+
+        try:
+            return preview_template(row["from"], stock_enabled=stock_enabled)
+        except Exception:
+            return None
+
+    @staticmethod
+    def clean_mapping(rows, stock_enabled=False):
         """Validate the submitted rows; return (cleaned rows, {row index: error})."""
         cleaned = []
         errors = {}
@@ -126,36 +149,74 @@ class FieldMapping(views.APIView):
                 continue
 
             if not source or not target:
-                errors[index] = "Enter both field names"
-            elif source.lower() in serializers.KICAD_PROTECTED_FIELDS:
-                errors[index] = (
-                    f"'{source}' is a protected KiCad field and cannot be renamed"
-                )
-            elif target.lower() in serializers.KICAD_PROTECTED_FIELDS:
-                errors[index] = f"'{target}' is a protected KiCad field name"
-            elif source == target:
-                errors[index] = "The new name is the same as the field name"
-            elif source.lower() in sources:
-                errors[index] = f"'{source}' is already renamed in another row"
-            elif target.lower() in targets:
-                errors[index] = (
-                    f"'{target}' is already used as a new name in another row"
-                )
+                errors[index] = "Enter both the source and the KiCad field name"
+                continue
+
+            if target.lower() in targets:
+                errors[index] = f"'{target}' is already used in another row"
+                continue
+
+            if serializers.is_template(source):
+                # Template row: fill the target field from the template
+                if target.lower() in serializers.KICAD_TEMPLATE_PROTECTED_FIELDS:
+                    errors[index] = f"'{target}' cannot be filled from a template"
+                    continue
+
+                try:
+                    preview_template(source, stock_enabled=stock_enabled)
+                except Exception as exc:
+                    errors[index] = template_error(exc)
+                    continue
             else:
+                # Rename row
+                if source.lower() in serializers.KICAD_PROTECTED_FIELDS:
+                    errors[index] = (
+                        f"'{source}' is a protected KiCad field and cannot be renamed"
+                    )
+                    continue
+
+                if target.lower() in serializers.KICAD_PROTECTED_FIELDS:
+                    errors[index] = (
+                        f"'{target}' is a protected KiCad field name - "
+                        f"use a template like {{part.IPN}} to fill it"
+                    )
+                    continue
+
+                if source == target:
+                    errors[index] = "The new name is the same as the field name"
+                    continue
+
+                if source.lower() in sources:
+                    errors[index] = f"'{source}' is already renamed in another row"
+                    continue
+
                 sources.add(source.lower())
-                targets.add(target.lower())
-                cleaned.append({"from": source, "to": target})
+
+            targets.add(target.lower())
+            cleaned.append({"from": source, "to": target})
 
         return cleaned, errors
 
-    def get(self, request, *args, **kwargs):
-        """Return the field mapping and the known field names"""
-        plugin = kwargs["plugin"]
+    def mapping_response(self, plugin, **extra):
+        """Return the stored mapping with a preview per row."""
+        stock_enabled = serializers.KicadPartSerializer.stock_count_enabled(plugin)
+        mapping = plugin.get_field_mapping()
 
         return response.Response({
-            "mapping": plugin.get_field_mapping(),
-            "suggestions": self.get_suggestions(),
+            "mapping": mapping,
+            "previews": [self.preview_row(row, stock_enabled) for row in mapping],
+            **extra,
         })
+
+    def get(self, request, *args, **kwargs):
+        """Return the field mapping, the known field names and the parameter names"""
+        parameter_names = self.get_parameter_names()
+
+        return self.mapping_response(
+            kwargs["plugin"],
+            suggestions=self.get_suggestions(parameter_names),
+            parameters=parameter_names,
+        )
 
     def put(self, request, *args, **kwargs):
         """Replace the field mapping"""
@@ -164,16 +225,18 @@ class FieldMapping(views.APIView):
 
         if not isinstance(rows, list):
             return response.Response(
-                {"errors": {"mapping": "Expected a list of field renames"}}, status=400
+                {"errors": {"mapping": "Expected a list of rows"}}, status=400
             )
 
-        cleaned, errors = self.clean_mapping(rows)
+        cleaned, errors = self.clean_mapping(
+            rows, serializers.KicadPartSerializer.stock_count_enabled(plugin)
+        )
 
         if errors:
             return response.Response({"errors": errors}, status=400)
 
         plugin.set_field_mapping(cleaned)
-        return response.Response({"mapping": plugin.get_field_mapping()})
+        return self.mapping_response(plugin)
 
 
 class StockFormatPreview(views.APIView):
@@ -187,15 +250,6 @@ class StockFormatPreview(views.APIView):
         permissions.IsAdminUser,
     ]
 
-    EXAMPLE_PART = SimpleNamespace(
-        name="RES-10K-0603",
-        IPN="R-0001",
-        description="Resistor 10k 1% 0603",
-        revision="A",
-        used_in_count=3,
-    )
-    EXAMPLE_STOCK = Decimal(1250)
-
     def post(self, request, *args, **kwargs):
         """Return the example description for the provided format string"""
         format_string = request.data.get("format", "")
@@ -205,20 +259,15 @@ class StockFormatPreview(views.APIView):
 
         try:
             preview = serializers.format_stock_description(
-                format_string, self.EXAMPLE_PART, self.EXAMPLE_STOCK
+                format_string, EXAMPLE_PART, EXAMPLE_STOCK, params=EXAMPLE_PARAMS
             )
-        except KeyError as exc:
-            error = f"Unknown placeholder {{{exc.args[0]}}}"
-        except IndexError:
-            error = "Only {0} (description) and {1} (stock) are available"
-        except AttributeError as exc:
-            error = f"Unknown part attribute: {getattr(exc, 'name', None) or exc}"
         except Exception as exc:
-            error = str(exc)
-        else:
-            return response.Response({"preview": preview})
+            error = template_error(
+                exc, "Only {0} (description) and {1} (stock) are available"
+            )
+            return response.Response({"error": error}, status=400)
 
-        return response.Response({"error": error}, status=400)
+        return response.Response({"preview": preview})
 
 
 class CategoryApi(rest_viewsets.ViewSet):

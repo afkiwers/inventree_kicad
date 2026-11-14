@@ -1,6 +1,5 @@
 import logging
 from decimal import Decimal
-from functools import cached_property
 
 from common.models import Parameter
 from company.models import Company, ManufacturerPart, SupplierPart
@@ -21,6 +20,7 @@ from rest_framework import serializers
 from rest_framework.reverse import reverse_lazy
 
 from .models import FootprintParameterMapping, SelectedCategory
+from .templates import ParameterValues, render_template, template_error
 
 logger = logging.getLogger("inventree")
 
@@ -38,44 +38,34 @@ KICAD_RESERVED_FIELDS = {
 # 'InvenTree' holds the part ID, which other tools rely on.
 KICAD_PROTECTED_FIELDS = KICAD_RESERVED_FIELDS | {"inventree"}
 
+# Fields which cannot be filled from a template in the field mapping.
+# The other default KiCad fields (value, description, keywords, datasheet) can be.
+KICAD_TEMPLATE_PROTECTED_FIELDS = {"footprint", "reference", "inventree"}
+
+
+def is_template(source: str) -> bool:
+    """Field mapping rows whose source contains '{' fill a field from a template."""
+    return "{" in source
+
 
 def _determine_part_name(part, use_ipn: bool = False) -> str:
     """Resolve part name for KiCad based on plugin setting."""
     return part.IPN or part.name if use_ipn else part.name
 
 
-class StockFormatPart:
-    """The 'part' object available in the stock count display format, e.g. {part.name}."""
-
-    def __init__(self, part, stock):
-        self._part = part
-        self.name = part.name
-        self.IPN = part.IPN
-        self.description = part.description
-        self.stock = stock
-        self.revision = part.revision
-
-    @cached_property
-    def used_in(self):
-        """Number of assemblies whose BOM uses this part.
-
-        This needs several database queries per part, so it is only evaluated
-        if the format string actually contains {part.used_in}.
-        """
-        return self._part.used_in_count
-
-
-def format_stock_description(format_string: str, part, stock) -> str:
+def format_stock_description(format_string: str, part, stock, params=None) -> str:
     """Format the KiCad description of a part using the stock count display format.
 
     {0} is the part description, {1} the formatted stock count, and {part.<attr>}
     gives access to selected part attributes. Raises an exception if the format is invalid.
     """
-    part_ = StockFormatPart(part, stock)
-
-    return format_string.format(
-        part.description, decimal2string(stock), part=part_
-    ).strip()
+    return render_template(
+        format_string,
+        part,
+        stock=stock,
+        params=params,
+        args=(part.description, decimal2string(stock)),
+    )
 
 
 class KicadPartSerializer(serializers.ModelSerializer):
@@ -143,13 +133,35 @@ class KicadPartSerializer(serializers.ModelSerializer):
     fields = serializers.SerializerMethodField("get_kicad_fields")
 
     def get_name(self, part):
-        # Use helper to reduce duplication
+        """Return the part name sent to KiCad, which links placed symbols to the library.
 
-        # Cache the 'use_ipn' setting
+        If the part name template is set, it is used; otherwise (or if it renders empty)
+        the part name, or the IPN if 'Use IPN Instead of Name' is enabled.
+        """
+        # Cache the settings
         if not hasattr(self, "use_ipn"):
             self.use_ipn = str2bool(
                 self.plugin.get_setting("KICAD_USE_IPN_AS_NAME", False)
             )
+            self.name_template = str(
+                self.plugin.get_setting("KICAD_NAME_TEMPLATE", "") or ""
+            ).strip()
+
+        if self.name_template:
+            try:
+                name = render_template(
+                    self.name_template, part, params=self.get_parameter_values(part)
+                )
+            except Exception as exc:
+                self.warn_once(
+                    "KiCad part name template '%s' failed: %s",
+                    self.name_template,
+                    template_error(exc),
+                )
+                name = ""
+
+            if name:
+                return name
 
         return _determine_part_name(part, self.use_ipn)
 
@@ -213,7 +225,10 @@ class KicadPartSerializer(serializers.ModelSerializer):
 
             try:
                 description = format_stock_description(
-                    self.stock_count_format, part, stock_count
+                    self.stock_count_format,
+                    part,
+                    stock_count,
+                    params=self.get_parameter_values(part),
                 )
             except Exception:
                 logger.exception("Failed to format stock count")
@@ -798,38 +813,59 @@ class KicadPartSerializer(serializers.ModelSerializer):
         if str2bool(self.get_plugin_setting("KICAD_ENABLE_MANUFACTURER_DATA", False)):
             fields = fields | self.get_supplier_part_fields(part)
 
-        return self.apply_field_mapping(fields)
+        return self.apply_field_mapping(fields, part)
 
     def get_field_mapping(self):
-        """Return the field mapping as {lower-case source name: new name}.
+        """Return the field mapping, split into (renames, templates).
+
+        - renames: {lower-case source field name: new name}
+        - templates: [(template, field name), ...] for rows whose source contains '{'
 
         Read once per serializer instance, which is reused for the whole response list.
         """
         if not hasattr(self, "_field_mapping"):
-            self._field_mapping = {
-                row["from"].lower(): row["to"]
-                for row in self.plugin.get_field_mapping()
-            }
+            rows = self.plugin.get_field_mapping()
+
+            self._field_mapping = (
+                {
+                    row["from"].lower(): row["to"]
+                    for row in rows
+                    if not is_template(row["from"])
+                },
+                [(row["from"], row["to"]) for row in rows if is_template(row["from"])],
+            )
 
         return self._field_mapping
 
-    def apply_field_mapping(self, fields):
-        """Rename KiCad fields according to the field mapping (issue #169).
+    def apply_field_mapping(self, fields, part):
+        """Apply the field mapping (issue #169) to the KiCad fields of a part.
 
         - Without a mapping, the fields are returned unchanged.
-        - Source names match case-insensitively; protected fields are never renamed.
-        - A rename onto a name which another (not renamed) field already uses is skipped,
-          so no field is silently overwritten.
+        - Renames: source names match case-insensitively; protected fields are never
+          renamed. A rename onto a name which another (not renamed) field already uses
+          is skipped, so no field is silently overwritten.
+        - Templates: fill a field from a template, e.g. {part.IPN} -> 'SKU'. This
+          deliberately replaces a field of the same name (keeping its visibility).
         """
-        mapping = self.get_field_mapping()
+        renames, templates = self.get_field_mapping()
 
-        if not mapping:
+        if not renames and not templates:
             return fields
 
+        if renames:
+            fields = self.rename_fields(fields, renames)
+
+        if templates:
+            fields = self.fill_template_fields(fields, templates, part)
+
+        return fields
+
+    def rename_fields(self, fields, renames):
+        """Rename fields, see apply_field_mapping."""
         new_names = {
             name: name
             if name.lower() in KICAD_PROTECTED_FIELDS
-            else mapping.get(name.lower(), name)
+            else renames.get(name.lower(), name)
             for name in fields
         }
 
@@ -847,25 +883,76 @@ class KicadPartSerializer(serializers.ModelSerializer):
                 new_name.lower() in kept
                 or new_name.lower() in {key.lower() for key in result}
             ):
-                self.warn_field_mapping_conflict(name, new_name)
+                self.warn_once(
+                    "KiCad field mapping: not renaming '%s' to '%s', a field with that name already exists",
+                    name,
+                    new_name,
+                )
                 new_name = name
 
             result[new_name] = field
 
         return result
 
-    def warn_field_mapping_conflict(self, name, new_name):
-        """Log a skipped rename once per serializer instance, not once per part."""
-        if not hasattr(self, "_field_mapping_warnings"):
-            self._field_mapping_warnings = set()
+    def fill_template_fields(self, fields, templates, part):
+        """Fill fields from templates, see apply_field_mapping."""
+        fields = dict(fields)
+        stock = self.get_template_stock(part)
+        params = self.get_parameter_values(part)
 
-        if (name, new_name) not in self._field_mapping_warnings:
-            self._field_mapping_warnings.add((name, new_name))
-            logger.warning(
-                "KiCad field mapping: not renaming '%s' to '%s', a field with that name already exists",
-                name,
-                new_name,
+        for template, target in templates:
+            if target.lower() in KICAD_TEMPLATE_PROTECTED_FIELDS:
+                continue
+
+            try:
+                value = render_template(template, part, stock=stock, params=params)
+            except Exception as exc:
+                self.warn_once(
+                    "KiCad field mapping: cannot fill '%s' from '%s': %s",
+                    target,
+                    template,
+                    template_error(exc),
+                )
+                continue
+
+            # Replace an existing field of the same name (e.g. 'description'), keeping its name and visibility
+            existing = next(
+                (name for name in fields if name.lower() == target.lower()), None
             )
+
+            if existing:
+                fields[existing] = {**fields[existing], "value": value}
+            else:
+                fields[target] = {"value": value, "visible": "False"}
+
+        return fields
+
+    def get_template_stock(self, part):
+        """Unallocated stock for {part.stock} in templates (None if stock information is disabled)."""
+        return self.get_unallocated_stock(part) if self.enable_stock_count else None
+
+    @staticmethod
+    def get_parameter_values(part):
+        """Parameter values of a part for {param[<name>]} in templates.
+
+        Uses the prefetched parameters (no extra queries), cached on the part instance.
+        """
+        if not hasattr(part, "_kicad_parameter_values"):
+            part._kicad_parameter_values = ParameterValues({
+                parameter.template.name: str(parameter.data or "")
+                for parameter in part.parameters_list.all()
+            })
+
+        return part._kicad_parameter_values
+
+    def warn_once(self, message, *args):
+        """Log a warning once per serializer instance, not once per part."""
+        if not hasattr(self, "_warnings"):
+            self._warnings = set()
+
+        if (message, args) not in self._warnings:
+            self._warnings.add((message, args))
+            logger.warning(message, *args)
 
     def get_exclude_from_bom(self, part):
         """Return whether or not the part should be excluded from the bom.

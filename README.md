@@ -238,20 +238,25 @@ By default, setting a parameter named `Kicad_Visible_Fields` with comma-separate
 
 The parameter name used to check field visibility can be changed in settings. This parameter will not be visible from KiCad.
 
-### Rename KiCad Fields
+### KiCad Field Mapping
 
-By default, the fields sent to KiCad use the InvenTree names: `IPN`, `Part URL`, the part parameter names (e.g. `Tolerance`), and, with manufacturer data enabled, `Manufacturer_1`, `MPN_1`, `Supplier_1_1`, `SPN_1_1`, and so on. If your libraries or BOM tools expect different names, you can rename these fields in the **KiCad Field Names** table of the **Plugin Configuration** panel on the plugin's settings page. Nothing changes until you add a row.
+By default, the fields sent to KiCad use the InvenTree names: `IPN`, `Part URL`, the part parameter names (e.g. `Tolerance`), and, with manufacturer data enabled, `Manufacturer_1`, `MPN_1`, `Supplier_1_1`, `SPN_1_1`, and so on. If your libraries or BOM tools expect different names or other values, use the **KiCad Field Mapping** table in the **Plugin Configuration** panel on the plugin's settings page. Nothing changes until you add a row.
 
-Start typing in the left column to pick from the known field and parameter names. Changes are saved automatically.
+Each row has a source on the left and a KiCad field name on the right. The source is either:
+
+- **a field name**, e.g. `IPN`: the field is **renamed** to the KiCad field name, or
+- **a template**, e.g. `{part.IPN}`: the KiCad field is **filled** with the template's value. Templates can use any [part value or parameter](#formatting), e.g. `{part.keywords}` or `{param[Tolerance]}`, mixed with text, e.g. `{part.name} rev {part.revision}`.
+
+Start typing in the left column to pick from the known field names, or type `{` to pick a part value or parameter. Below each row, the panel shows what it does, and for templates an example value. Changes are saved automatically.
 
 ![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/field_mapping.png)
 
-#### Example
+#### Example: Renaming Fields
 
 Say your company calls the internal part number `SKU`, links to InvenTree with a `Link` field, uses a short `Tol` field, and has a single manufacturer per part. You'd enter:
 
-| InvenTree field | KiCad field |
-| --------------- | ----------- |
+| Source | KiCad field |
+| ------ | ----------- |
 | `IPN` | `SKU` |
 | `Part URL` | `Link` |
 | `Tolerance` | `Tol` |
@@ -290,15 +295,50 @@ After:
 }
 ```
 
-**Migrating from a database library:** if your existing schematics link symbols through a field such as `Part Number`, enable **Include IPN** and map `IPN` → `Part Number`. The IPN then arrives in the field your symbols already use, so updating symbols from the library keeps working.
+#### Example: Filling Fields from Templates
+
+Templates add fields the plugin doesn't send by default, and can set the KiCad fields `value`, `description`, `keywords` and `datasheet`. No other setting is needed, e.g. `SKU` works without **Include IPN**:
+
+| Source | KiCad field | Result for the part above |
+| ------ | ----------- | ------------------------- |
+| `{part.IPN}` | `SKU` | `R-0001` |
+| `{param[Manufacturer Code]}` | `MPN` | the part's `Manufacturer Code` parameter |
+| `{part.category}` | `Category` | `Electronics/Passives/Resistors` |
+| `{part.keywords}` | `keywords` | the part's keywords (replaces KiCad's keywords) |
+| `{part.name} rev {part.revision}` | `description` | `RES-10K-0603 rev A` (replaces KiCad's description) |
+
+New fields are hidden in the schematic (`"visible": "False"`); when a template replaces an existing field, that field keeps its visibility. A parameter the part doesn't have is empty, so the field is still sent.
+
+**Migrating from a database library:** if your existing schematics use a field such as `Part Number` for the internal part number, map `{part.IPN}` → `Part Number` (or rename `IPN` → `Part Number` with **Include IPN** enabled). To keep the link of placed symbols to the library as well, see [Part Name / Symbol Link](#part-name--symbol-link).
 
 #### Rules
 
 - Field names are matched case-insensitively (`ipn` matches `IPN`).
-- The KiCad fields `value`, `footprint`, `datasheet`, `reference`, `description`, `keywords` and the `InvenTree` part ID field can't be renamed, and can't be used as a new name.
-- Each field can only be renamed once, and each new name can only be used once. Renaming a field to a name another field already has is skipped, so no data is overwritten.
+- Renaming: the KiCad fields `value`, `footprint`, `datasheet`, `reference`, `description`, `keywords` and the `InvenTree` part ID field can't be renamed, and can't be used as a new name. Renaming a field to a name another field already has is skipped, so no data is overwritten.
+- Templates can fill any field except `footprint`, `reference` (use the **Footprint Parameter** / **Reference Parameter** settings) and `InvenTree`. A template replaces a field of the same name.
+- Each source can only be renamed once, and each KiCad field name can only be used once.
+- `{part.stock}` needs **Display Available Stock**, and `{part.used_in}` is slow (see [Formatting](#formatting)).
 - Field visibility (`Kicad_Visible_Fields` and its global setting) keeps using the original parameter names.
-- Symbols already placed in a schematic keep their old field names until they are updated from the library.
+- Symbols already placed in a schematic keep their old fields until they are updated from the library.
+
+### Part Name / Symbol Link
+
+KiCad links a placed symbol to the library through the part name sent by the plugin (`<library nickname>:<part name>`). By default this is the part name, or the IPN with **Use IPN Instead of Name** enabled.
+
+The **Part Name Template** setting lets you use any other value, with the same template values as above. This is useful when migrating from a KiCad database library, whose symbols are linked by a key column:
+
+| Part Name Template | Part name in KiCad |
+| ------------------ | ------------------ |
+| *(empty, default)* | the part name, or the IPN (see above) |
+| `{part.IPN}` | `R-0001` |
+| `{param[Legacy ID]}` | the part's `Legacy ID` parameter, e.g. the key of your old database library |
+| `{part.IPN}_{part.revision}` | `R-0001_A` |
+
+Typing `{` in the setting lists the available values. If the template is empty for a part (e.g. the parameter is missing), that part falls back to the default name.
+
+**Please Note:**
+- Changing the part name breaks the library link of symbols already placed in schematics, unless the new names match the old links.
+- Part names should be unique, as KiCad looks parts up by name.
 
 ## Creating User Access Tokens
 
@@ -360,8 +400,17 @@ The following part attributes are available, used as `{part.<parameter>}` (e.g. 
 | `IPN`         | `str`     | The internal part number. |
 | `description` | `str`     | The part’s description (equivalent to `{0}`). |
 | `revision`    | `str`     | The part’s revision. |
-| `stock`       | `Decimal` | The unallocated stock count for this part (equivalent to `{1}`). |
+| `keywords`    | `str`     | The part’s keywords. |
+| `units`       | `str`     | The part’s units. |
+| `link`        | `str`     | The part’s external link. |
+| `category`    | `str`     | The full category path, e.g. `Electronics/Passives/Resistors`. |
+| `pk`          | `int`     | The part’s ID in InvenTree. |
+| `stock`       | `Decimal` | The unallocated stock count for this part (equivalent to `{1}`). Only available with **Display Available Stock** enabled. |
 | `used_in`     | `int`     | The number of assemblies whose BOM uses this part. |
+
+Part parameters are available as `{param[<parameter name>]}`, e.g. `{param[Tolerance]}` (matched case-insensitively; empty if the part doesn't have the parameter).
+
+These values work in the **Stock Count Display Format**, in [KiCad Field Mapping](#kicad-field-mapping) templates and in the [Part Name Template](#part-name--symbol-link).
 
 **Note:** `part.used_in` is only looked up if `{part.used_in}` is part of the format. It uses the same count as InvenTree (including variants, substitutes and inherited BOMs), which requires several additional database queries for every part in a KiCad part list. Large categories can therefore load noticeably slower when it is used. Leave it out of the format if you don't need it; without it, no additional queries are made.
 
@@ -372,7 +421,7 @@ For example: `{part.stock:.0f}`. Here, (`:.0f`) formats the number as a floating
 
 ### Format Editor
 
-When **Display Available Stock** is enabled, the **Plugin Configuration** panel on the plugin's settings page provides an editor for the **Stock Count Display Format**. Typing `{` lists the available placeholders (insert one with the arrow keys and `Enter`/`Tab`, or by clicking it). A preview using an example part is shown below the input, and the format is saved automatically once it is valid.
+When **Display Available Stock** is enabled, the **Plugin Configuration** panel on the plugin's settings page provides an editor for the **Stock Count Display Format**. Typing `{` lists the available placeholders (insert one with the arrow keys and `Enter`/`Tab`, or by clicking it). A preview using an example part is shown below the input, and the format is saved automatically once it is valid. Typing `{` lists the placeholders in the setting's own edit dialog as well.
 
 ### Legacy Format
 Still supported: `{0}` and `{1}` which will display as:  {1} Stock information, {0} description of the part.

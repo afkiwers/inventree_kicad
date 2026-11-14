@@ -13,6 +13,7 @@ from plugin import InvenTreePlugin
 from plugin.mixins import AppMixin, SettingsMixin, UrlsMixin
 from rest_framework import routers
 
+from .templates import validate_name_template
 from .version import KICAD_PLUGIN_VERSION
 
 
@@ -147,6 +148,14 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             "validator": bool,
             "default": False,
         },
+        "KICAD_NAME_TEMPLATE": {
+            "name": _("Part Name Template"),
+            "description": _(
+                "Optional template for the part name sent to KiCad, which links placed symbols to the library, e.g. {part.IPN} or {param[Legacy ID]}. Empty: part name (or IPN, see above). Changing it breaks the library link of already placed symbols; names should be unique."
+            ),
+            "default": "",
+            "validator": validate_name_template,
+        },
         "KICAD_ENABLE_MANUFACTURER_DATA": {
             "name": _("Add Manufacturer Data to KiCad Parts"),
             "description": _(
@@ -204,7 +213,8 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
         )
 
     # Metadata key used to store the field mapping (renaming fields sent to KiCad).
-    # An ordered list of {"from": <field name>, "to": <new field name>}; empty = no renaming.
+    # An ordered list of {"from": <field name or template>, "to": <KiCad field name>};
+    # empty = fields unchanged. A "from" containing '{' is a template (e.g. "{part.IPN}").
     FIELD_MAPPING_KEY = "kicad_field_mapping"
 
     def get_field_mapping(self) -> list[dict]:
@@ -233,6 +243,9 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             # Used to find InvenTree's "Edit Setting" dialog for the format (autocompletion)
             "stock_format_setting_name": str(
                 self.SETTINGS["KICAD_ENABLE_STOCK_COUNT_FORMAT"]["name"]
+            ),
+            "name_template_setting_name": str(
+                self.SETTINGS["KICAD_NAME_TEMPLATE"]["name"]
             ),
         }
 
