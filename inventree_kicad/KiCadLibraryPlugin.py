@@ -203,10 +203,29 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             self.SUPPLIER_FILTER_KEY, sorted({int(x) for x in supplier_ids})
         )
 
+    # Metadata key used to store the field mapping (renaming fields sent to KiCad).
+    # An ordered list of {"from": <field name>, "to": <new field name>}; empty = no renaming.
+    FIELD_MAPPING_KEY = "kicad_field_mapping"
+
+    def get_field_mapping(self) -> list[dict]:
+        """Return the list of field renames, as [{"from": str, "to": str}, ...]."""
+        value = self.plugin_config().get_metadata(self.FIELD_MAPPING_KEY, [])
+
+        return [
+            {"from": str(row["from"]), "to": str(row["to"])}
+            for row in value or []
+            if isinstance(row, dict) and row.get("from") and row.get("to")
+        ]
+
+    def set_field_mapping(self, rows: list[dict]):
+        """Store the list of field renames (already validated)."""
+        self.plugin_config().set_metadata(self.FIELD_MAPPING_KEY, rows)
+
     def get_admin_context(self) -> dict:
         """Context data for the custom settings panel."""
         return {
             "supplier_filter_url": f"/{self.base_url}api/supplier-filter/",
+            "field_mapping_url": f"/{self.base_url}api/field-mapping/",
             "enable_setting_url": f"/api/plugins/{self.slug}/settings/KICAD_ENABLE_MANUFACTURER_DATA/",
             "stock_enable_setting_url": f"/api/plugins/{self.slug}/settings/KICAD_ENABLE_STOCK_COUNT/",
             "stock_format_setting_url": f"/api/plugins/{self.slug}/settings/KICAD_ENABLE_STOCK_COUNT_FORMAT/",
@@ -229,6 +248,12 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
                 viewsets.SupplierFilter.as_view(),
                 {"plugin": self},
                 name="kicad-supplier-filter",
+            ),
+            re_path(
+                r"^field-mapping/$",
+                viewsets.FieldMapping.as_view(),
+                {"plugin": self},
+                name="kicad-field-mapping",
             ),
             re_path(
                 r"^stock-format-preview/$",
