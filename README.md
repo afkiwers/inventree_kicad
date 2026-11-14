@@ -238,6 +238,68 @@ By default, setting a parameter named `Kicad_Visible_Fields` with comma-separate
 
 The parameter name used to check field visibility can be changed in settings. This parameter will not be visible from KiCad.
 
+### Rename KiCad Fields
+
+By default, the fields sent to KiCad use the InvenTree names: `IPN`, `Part URL`, the part parameter names (e.g. `Tolerance`), and, with manufacturer data enabled, `Manufacturer_1`, `MPN_1`, `Supplier_1_1`, `SPN_1_1`, and so on. If your libraries or BOM tools expect different names, you can rename these fields in the **KiCad Field Names** table of the **Plugin Configuration** panel on the plugin's settings page. Nothing changes until you add a row.
+
+Start typing in the left column to pick from the known field and parameter names. Changes are saved automatically.
+
+![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/field_mapping.png)
+
+#### Example
+
+Say your company calls the internal part number `SKU`, links to InvenTree with a `Link` field, uses a short `Tol` field, and has a single manufacturer per part. You'd enter:
+
+| InvenTree field | KiCad field |
+| --------------- | ----------- |
+| `IPN` | `SKU` |
+| `Part URL` | `Link` |
+| `Tolerance` | `Tol` |
+| `Manufacturer_1` | `Manufacturer` |
+| `MPN_1` | `MPN` |
+
+With **Include IPN** and **Add Manufacturer Data to KiCad Parts** enabled, the `fields` of a part (`/plugin/kicad-library-plugin/v1/parts/<id>.json`) change like this. Values and visibility stay the same; only the names change.
+
+Before:
+
+```json
+"fields": {
+    "value": {"value": "10k"},
+    "reference": {"value": "R", "visible": "True"},
+    "InvenTree": {"value": "42", "visible": "False"},
+    "Part URL": {"value": "https://inventree.example.com/web/part/42/", "visible": "False"},
+    "IPN": {"value": "R-0001", "visible": "True"},
+    "Tolerance": {"value": "1%", "visible": "False"},
+    "Manufacturer_1": {"value": "Yageo", "visible": "False"},
+    "MPN_1": {"value": "RC0603FR-0710KL", "visible": "False"}
+}
+```
+
+After:
+
+```json
+"fields": {
+    "value": {"value": "10k"},
+    "reference": {"value": "R", "visible": "True"},
+    "InvenTree": {"value": "42", "visible": "False"},
+    "Link": {"value": "https://inventree.example.com/web/part/42/", "visible": "False"},
+    "SKU": {"value": "R-0001", "visible": "True"},
+    "Tol": {"value": "1%", "visible": "False"},
+    "Manufacturer": {"value": "Yageo", "visible": "False"},
+    "MPN": {"value": "RC0603FR-0710KL", "visible": "False"}
+}
+```
+
+**Migrating from a database library:** if your existing schematics link symbols through a field such as `Part Number`, enable **Include IPN** and map `IPN` → `Part Number`. The IPN then arrives in the field your symbols already use, so updating symbols from the library keeps working.
+
+#### Rules
+
+- Field names are matched case-insensitively (`ipn` matches `IPN`).
+- The KiCad fields `value`, `footprint`, `datasheet`, `reference`, `description`, `keywords` and the `InvenTree` part ID field can't be renamed, and can't be used as a new name.
+- Each field can only be renamed once, and each new name can only be used once. Renaming a field to a name another field already has is skipped, so no data is overwritten.
+- Field visibility (`Kicad_Visible_Fields` and its global setting) keeps using the original parameter names.
+- Symbols already placed in a schematic keep their old field names until they are updated from the library.
+
 ## Creating User Access Tokens
 
 Return to the administrative backend, navigate to the USER model, and access API Tokens. Select "ADD API Token" to generate a token designated for a specific user. It's crucial to highlight the importance of creating separate tokens for each user, rather than using a universal token for everyone.

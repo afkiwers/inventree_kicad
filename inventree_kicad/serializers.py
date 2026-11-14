@@ -34,6 +34,10 @@ KICAD_RESERVED_FIELDS = {
     "keywords",
 }
 
+# Fields which can neither be renamed by the field mapping nor be used as a new field name.
+# 'InvenTree' holds the part ID, which other tools rely on.
+KICAD_PROTECTED_FIELDS = KICAD_RESERVED_FIELDS | {"inventree"}
+
 
 def _determine_part_name(part, use_ipn: bool = False) -> str:
     """Resolve part name for KiCad based on plugin setting."""
@@ -794,7 +798,74 @@ class KicadPartSerializer(serializers.ModelSerializer):
         if str2bool(self.get_plugin_setting("KICAD_ENABLE_MANUFACTURER_DATA", False)):
             fields = fields | self.get_supplier_part_fields(part)
 
-        return fields
+        return self.apply_field_mapping(fields)
+
+    def get_field_mapping(self):
+        """Return the field mapping as {lower-case source name: new name}.
+
+        Read once per serializer instance, which is reused for the whole response list.
+        """
+        if not hasattr(self, "_field_mapping"):
+            self._field_mapping = {
+                row["from"].lower(): row["to"]
+                for row in self.plugin.get_field_mapping()
+            }
+
+        return self._field_mapping
+
+    def apply_field_mapping(self, fields):
+        """Rename KiCad fields according to the field mapping (issue #169).
+
+        - Without a mapping, the fields are returned unchanged.
+        - Source names match case-insensitively; protected fields are never renamed.
+        - A rename onto a name which another (not renamed) field already uses is skipped,
+          so no field is silently overwritten.
+        """
+        mapping = self.get_field_mapping()
+
+        if not mapping:
+            return fields
+
+        new_names = {
+            name: name
+            if name.lower() in KICAD_PROTECTED_FIELDS
+            else mapping.get(name.lower(), name)
+            for name in fields
+        }
+
+        # Names which stay as they are, and therefore cannot be used as a new name
+        kept = {
+            name.lower() for name, new_name in new_names.items() if name == new_name
+        }
+
+        result = {}
+
+        for name, field in fields.items():
+            new_name = new_names[name]
+
+            if new_name != name and (
+                new_name.lower() in kept
+                or new_name.lower() in {key.lower() for key in result}
+            ):
+                self.warn_field_mapping_conflict(name, new_name)
+                new_name = name
+
+            result[new_name] = field
+
+        return result
+
+    def warn_field_mapping_conflict(self, name, new_name):
+        """Log a skipped rename once per serializer instance, not once per part."""
+        if not hasattr(self, "_field_mapping_warnings"):
+            self._field_mapping_warnings = set()
+
+        if (name, new_name) not in self._field_mapping_warnings:
+            self._field_mapping_warnings.add((name, new_name))
+            logger.warning(
+                "KiCad field mapping: not renaming '%s' to '%s', a field with that name already exists",
+                name,
+                new_name,
+            )
 
     def get_exclude_from_bom(self, part):
         """Return whether or not the part should be excluded from the bom.

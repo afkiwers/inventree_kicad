@@ -7,6 +7,8 @@
  *   An empty selection means that all suppliers are included.
  * - Stock count display format: editor for the KICAD_ENABLE_STOCK_COUNT_FORMAT setting,
  *   with placeholder autocompletion and a live preview.
+ * - KiCad field names: table which renames fields sent to KiCad (e.g. IPN -> SKU),
+ *   stored as plugin metadata via the plugin's field-mapping API endpoint.
  */
 
 function escapeHtml(text) {
@@ -48,10 +50,12 @@ export function renderPluginSettings(target, data) {
     <div style="display: flex; flex-direction: column; gap: 24px;">
         <div data-role="supplier-section"></div>
         <div data-role="stock-section"></div>
+        <div data-role="field-mapping-section"></div>
     </div>
     `;
 
     const stockEditor = renderStockFormatEditor(target.querySelector('[data-role="stock-section"]'), api, context);
+    renderFieldMappingEditor(target.querySelector('[data-role="field-mapping-section"]'), api, context);
 
     const supplierSection = target.querySelector('[data-role="supplier-section"]');
 
@@ -569,4 +573,168 @@ function renderStockFormatEditor(section, api, context) {
             return false;
         },
     };
+}
+
+/**
+ * Table which renames fields sent to KiCad (issue #169), e.g. IPN -> SKU.
+ * Without any rows, the fields are sent unchanged.
+ */
+function renderFieldMappingEditor(section, api, context) {
+    const mappingUrl = context.field_mapping_url ?? '/plugin/kicad-library-plugin/api/field-mapping/';
+    const datalistId = `kicad-field-names-${Math.random().toString(36).slice(2)}`;
+
+    const BUTTON_STYLE = `padding: 4px 10px; border-radius: 4px; cursor: pointer;
+        border: 1px solid var(--mantine-color-default-border, #ccc);
+        background: var(--mantine-color-default, #fff);
+        color: var(--mantine-color-text, inherit);`;
+
+    section.innerHTML = `
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div>
+            <strong>KiCad Field Names</strong>
+            <div style="font-size: 0.85em; opacity: 0.75;">
+                Rename fields sent to KiCad, e.g. <code>IPN</code> &rarr; <code>SKU</code>.
+                Field names are matched case-insensitively. Without any rows, all fields keep their names.
+                Changes are saved automatically.
+            </div>
+        </div>
+        <datalist id="${datalistId}"></datalist>
+        <div data-role="rows" style="display: flex; flex-direction: column; gap: 6px;"></div>
+        <div>
+            <button data-role="add" type="button" style="${BUTTON_STYLE}">Add field</button>
+        </div>
+        <div data-role="status" style="font-size: 0.85em; opacity: 0.75;">Loading field mapping...</div>
+    </div>
+    `;
+
+    const datalist = section.querySelector('datalist');
+    const rowsDiv = section.querySelector('[data-role="rows"]');
+    const statusDiv = section.querySelector('[data-role="status"]');
+    const addButton = section.querySelector('[data-role="add"]');
+
+    let rows = [];
+    let saveTimer = null;
+    let saveSeq = 0;
+
+    function setStatus(text) {
+        statusDiv.textContent = text;
+    }
+
+    function renderRows() {
+        if (rows.length === 0) {
+            rowsDiv.innerHTML = '<em style="font-size: 0.9em; opacity: 0.75;">No fields renamed</em>';
+            return;
+        }
+
+        rowsDiv.innerHTML = rows
+            .map(
+                (row, i) => `<div data-row="${i}" style="display: flex; flex-direction: column; gap: 2px;">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input data-field="from" type="text" list="${datalistId}" autocomplete="off"
+                            placeholder="InvenTree field (e.g. IPN)" value="${escapeHtml(row.from)}"
+                            style="flex: 1; min-width: 0; ${INPUT_STYLE}" />
+                        <span style="opacity: 0.75;">&rarr;</span>
+                        <input data-field="to" type="text" autocomplete="off"
+                            placeholder="KiCad field (e.g. SKU)" value="${escapeHtml(row.to)}"
+                            style="flex: 1; min-width: 0; ${INPUT_STYLE}" />
+                        <button data-remove="${i}" type="button" title="Remove" style="${BUTTON_STYLE}">&times;</button>
+                    </div>
+                    <div data-role="error" style="font-size: 0.85em; color: var(--mantine-color-red-text, #e03131);"></div>
+                </div>`
+            )
+            .join('');
+    }
+
+    function showErrors(errors) {
+        rowsDiv.querySelectorAll('[data-row]').forEach((rowDiv) => {
+            rowDiv.querySelector('[data-role="error"]').textContent = errors[rowDiv.dataset.row] ?? '';
+        });
+    }
+
+    function save() {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+            const seq = ++saveSeq;
+
+            // Rows which are not filled in completely yet are not sent
+            const complete = rows
+                .map((row, index) => ({ index, from: row.from.trim(), to: row.to.trim() }))
+                .filter((row) => row.from && row.to);
+
+            setStatus('Saving...');
+            showErrors({});
+
+            api.put(mappingUrl, { mapping: complete.map(({ from, to }) => ({ from, to })) })
+                .then(() => {
+                    if (seq !== saveSeq) {
+                        return;
+                    }
+
+                    const incomplete = rows.length - complete.length;
+                    setStatus(incomplete
+                        ? `Saved - ${incomplete} incomplete row(s) not used yet`
+                        : `Saved - ${complete.length || 'no'} field(s) renamed`);
+                })
+                .catch((error) => {
+                    if (seq !== saveSeq) {
+                        return;
+                    }
+
+                    const errors = error?.response?.data?.errors;
+
+                    if (errors && typeof errors === 'object') {
+                        // Map the indexes of the sent rows back to the rows in the table
+                        const rowErrors = {};
+                        Object.entries(errors).forEach(([index, message]) => {
+                            const row = complete[parseInt(index, 10)];
+                            if (row) {
+                                rowErrors[row.index] = message;
+                            }
+                        });
+                        showErrors(rowErrors);
+                        setStatus('Not saved - fix the highlighted rows');
+                    } else {
+                        setStatus(`Error saving field mapping: ${error?.message ?? error}`);
+                    }
+                });
+        }, 400);
+    }
+
+    rowsDiv.addEventListener('input', (event) => {
+        const rowDiv = event.target.closest('[data-row]');
+        const field = event.target.dataset?.field;
+
+        if (rowDiv && field) {
+            rows[parseInt(rowDiv.dataset.row, 10)][field] = event.target.value;
+            save();
+        }
+    });
+
+    rowsDiv.addEventListener('click', (event) => {
+        const index = parseInt(event.target?.dataset?.remove, 10);
+
+        if (!Number.isNaN(index)) {
+            rows.splice(index, 1);
+            renderRows();
+            save();
+        }
+    });
+
+    addButton.addEventListener('click', () => {
+        rows.push({ from: '', to: '' });
+        renderRows();
+        rowsDiv.querySelector(`[data-row="${rows.length - 1}"] [data-field="from"]`)?.focus();
+    });
+
+    api.get(mappingUrl)
+        .then((response) => {
+            rows = (response.data?.mapping ?? []).map((row) => ({ from: row.from, to: row.to }));
+            datalist.innerHTML = (response.data?.suggestions ?? [])
+                .map((name) => `<option value="${escapeHtml(name)}"></option>`)
+                .join('');
+
+            renderRows();
+            setStatus(rows.length ? `${rows.length} field(s) renamed` : '');
+        })
+        .catch((error) => setStatus(`Error loading field mapping: ${error?.message ?? error}`));
 }
