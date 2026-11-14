@@ -81,7 +81,7 @@ class StockFormatPreview(views.APIView):
         revision="A",
         used_in_count=3,
     )
-    EXAMPLE_STOCK = Decimal("1250")
+    EXAMPLE_STOCK = Decimal(1250)
 
     def post(self, request, *args, **kwargs):
         """Return the example description for the provided format string"""

@@ -282,4 +282,3 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             # Anything else, redirect to our top-level v1 page
             re_path("^.*$", viewsets.Index.as_view(), name="kicad-index"),
         ]
-
