@@ -62,7 +62,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
         "KICAD_ENABLE_STOCK_COUNT_FORMAT": {
             "name": _("Stock Count Display Format"),
             "description": _(
-                "This will be displayed after the part's description in KiCad (right column). Note: {1} contains the Stock information, {0} the description of the part."
+                "Shown as the part description in KiCad (right column). Type { to insert a placeholder, e.g. {part.stock:.0f}, {part.description}, {part.IPN}. A live preview is available in Plugin Configuration below."
             ),
             "default": "[Stock: {part.stock:.0f}] {part.description}",
         },
@@ -230,6 +230,10 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             "stock_enable_setting_url": f"/api/plugins/{self.slug}/settings/KICAD_ENABLE_STOCK_COUNT/",
             "stock_format_setting_url": f"/api/plugins/{self.slug}/settings/KICAD_ENABLE_STOCK_COUNT_FORMAT/",
             "stock_format_preview_url": f"/{self.base_url}api/stock-format-preview/",
+            # Used to find InvenTree's "Edit Setting" dialog for the format (autocompletion)
+            "stock_format_setting_name": str(
+                self.SETTINGS["KICAD_ENABLE_STOCK_COUNT_FORMAT"]["name"]
+            ),
         }
 
     def setup_urls(self):

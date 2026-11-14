@@ -39,6 +39,216 @@ const STOCK_PLACEHOLDERS = [
     { text: 'part.used_in', description: 'Number of assemblies using this part (slower)' },
 ];
 
+/**
+ * Add placeholder autocompletion to a text input: typing "{" lists the placeholders,
+ * which are inserted with the arrow keys and Enter / Tab, or by clicking them.
+ *
+ * Works for inputs controlled by React (InvenTree's setting dialog) as well: the value is set
+ * through the native setter and an "input" event is dispatched, so React picks up the change.
+ */
+function attachPlaceholderAutocomplete(input, placeholders) {
+    const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+
+    let menu = null;
+    let matches = [];
+    let activeIndex = 0;
+
+    // Return the placeholder being typed at the caret, i.e. the text after an unclosed "{"
+    function currentToken() {
+        if (input.selectionStart !== input.selectionEnd) {
+            return null;
+        }
+
+        const caret = input.selectionStart ?? input.value.length;
+        const before = input.value.slice(0, caret);
+        const open = before.lastIndexOf('{');
+
+        // No brace, or an escaped brace ("{{")
+        if (open < 0 || before[open - 1] === '{') {
+            return null;
+        }
+
+        const token = before.slice(open + 1);
+
+        if (!/^[\w.:]*$/.test(token)) {
+            return null;
+        }
+
+        return { start: open + 1, end: caret, token };
+    }
+
+    function closeMenu() {
+        menu?.remove();
+        menu = null;
+        matches = [];
+    }
+
+    function renderMenu() {
+        if (!menu) {
+            // Attached to the body with a fixed position, so it is not clipped by dialogs
+            menu = document.createElement('div');
+            menu.style.cssText = `position: fixed; z-index: 10000; max-height: 240px; overflow-y: auto;
+                border-radius: 4px; border: 1px solid var(--mantine-color-default-border, #ccc);
+                background: var(--mantine-color-body, #fff); color: var(--mantine-color-text, inherit);
+                box-shadow: 0 4px 12px rgba(0,0,0,.15); font-size: 14px;`;
+
+            // mousedown (not click), so the input keeps the focus and the caret position
+            menu.addEventListener('mousedown', (event) => {
+                event.preventDefault();
+                const index = parseInt(event.target.closest('[data-index]')?.dataset?.index, 10);
+                if (!Number.isNaN(index)) {
+                    accept(matches[index]);
+                }
+            });
+
+            document.body.appendChild(menu);
+        }
+
+        const rect = input.getBoundingClientRect();
+        menu.style.left = `${rect.left}px`;
+        menu.style.top = `${rect.bottom + 2}px`;
+        menu.style.width = `${rect.width}px`;
+
+        menu.innerHTML = matches
+            .map(
+                (p, i) => `<div data-index="${i}" style="display: flex; justify-content: space-between; gap: 12px;
+                    padding: 4px 10px; cursor: pointer;
+                    ${i === activeIndex ? 'background: var(--mantine-primary-color-light, #e7f5ff);' : ''}">
+                    <span style="font-family: monospace;">{${escapeHtml(p.text)}}</span>
+                    <span style="font-size: 0.85em; opacity: 0.75;">${escapeHtml(p.description)}</span>
+                </div>`
+            )
+            .join('');
+
+        menu.querySelector(`[data-index="${activeIndex}"]`)?.scrollIntoView({ block: 'nearest' });
+    }
+
+    function updateMenu() {
+        const token = currentToken();
+
+        if (!token) {
+            closeMenu();
+            return;
+        }
+
+        const query = token.token.toLowerCase();
+        const closed = input.value[token.end] === '}';
+
+        // Placeholders starting with the typed text first, then those containing it
+        const startsWith = placeholders.filter((p) => p.text.toLowerCase().startsWith(query));
+        const contains = placeholders.filter(
+            (p) => !startsWith.includes(p)
+                && (p.text.toLowerCase().includes(query) || p.description.toLowerCase().includes(query))
+        );
+        const found = [...startsWith, ...contains];
+
+        // Nothing to suggest, or the placeholder is already complete
+        if (found.length === 0 || (closed && found.some((p) => p.text === token.token))) {
+            closeMenu();
+            return;
+        }
+
+        matches = found;
+        activeIndex = Math.min(activeIndex, matches.length - 1);
+        renderMenu();
+    }
+
+    function accept(placeholder) {
+        const token = currentToken();
+
+        if (!token) {
+            return;
+        }
+
+        const value = input.value;
+        const closing = value[token.end] === '}' ? '' : '}';
+        const caret = token.start + placeholder.text.length + 1;
+
+        closeMenu();
+
+        valueSetter.call(input, value.slice(0, token.start) + placeholder.text + closing + value.slice(token.end));
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.setSelectionRange(caret, caret);
+    }
+
+    input.setAttribute('autocomplete', 'off');
+
+    input.addEventListener('input', () => {
+        activeIndex = 0;
+        updateMenu();
+    });
+
+    input.addEventListener('keydown', (event) => {
+        if (matches.length === 0) {
+            return;
+        }
+
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            const step = event.key === 'ArrowDown' ? 1 : -1;
+            activeIndex = (activeIndex + step + matches.length) % matches.length;
+            renderMenu();
+        } else if (event.key === 'Enter' || event.key === 'Tab') {
+            // Also keeps Enter from submitting the setting dialog
+            accept(matches[activeIndex]);
+        } else if (event.key === 'Escape') {
+            // Close only the suggestions, not the setting dialog
+            closeMenu();
+        } else {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+    });
+
+    // Caret moved without changing the text
+    input.addEventListener('keyup', (event) => {
+        if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+            updateMenu();
+        }
+    });
+    input.addEventListener('click', updateMenu);
+    input.addEventListener('blur', closeMenu);
+}
+
+/**
+ * Add placeholder autocompletion to InvenTree's "Edit Setting" dialog for the given setting.
+ * The dialog is rendered by InvenTree, so we watch the page for it to open.
+ * Stops watching once the settings panel has been closed.
+ */
+function watchSettingDialog(panel, settingName, placeholders) {
+    let scheduled = false;
+
+    function enhance() {
+        scheduled = false;
+
+        document.querySelectorAll('[role="dialog"]').forEach((dialog) => {
+            if (!dialog.textContent.includes(settingName)) {
+                return;
+            }
+
+            const input = dialog.querySelector('input:not([type]), input[type="text"]');
+
+            if (input && !input.dataset.kicadAutocomplete) {
+                input.dataset.kicadAutocomplete = 'true';
+                attachPlaceholderAutocomplete(input, placeholders);
+            }
+        });
+    }
+
+    const observer = new MutationObserver(() => {
+        if (!document.body.contains(panel)) {
+            observer.disconnect();
+        } else if (!scheduled) {
+            scheduled = true;
+            requestAnimationFrame(enhance);
+        }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    enhance();
+}
+
 export function renderPluginSettings(target, data) {
     const api = data.api;
     const context = data.context ?? {};
@@ -56,6 +266,9 @@ export function renderPluginSettings(target, data) {
 
     const stockEditor = renderStockFormatEditor(target.querySelector('[data-role="stock-section"]'), api, context);
     renderFieldMappingEditor(target.querySelector('[data-role="field-mapping-section"]'), api, context);
+
+    // The regular settings list edits the format in a dialog: add the autocompletion there as well
+    watchSettingDialog(target, context.stock_format_setting_name ?? 'Stock Count Display Format', STOCK_PLACEHOLDERS);
 
     const supplierSection = target.querySelector('[data-role="supplier-section"]');
 
@@ -312,11 +525,6 @@ function renderStockFormatEditor(section, api, context) {
         <div style="position: relative;">
             <input data-role="format" type="text" spellcheck="false" autocomplete="off"
                 style="width: 100%; box-sizing: border-box; font-family: monospace; ${INPUT_STYLE}" />
-            <div data-role="menu" style="display: none; position: absolute; left: 0; right: 0; top: 100%;
-                z-index: 1000; margin-top: 2px; max-height: 240px; overflow-y: auto; border-radius: 4px;
-                border: 1px solid var(--mantine-color-default-border, #ccc);
-                background: var(--mantine-color-body, #fff);
-                box-shadow: 0 4px 12px rgba(0,0,0,.15);"></div>
         </div>
         <div style="font-size: 0.85em;">
             <span style="opacity: 0.75;">Preview (example part):</span>
@@ -327,7 +535,6 @@ function renderStockFormatEditor(section, api, context) {
     `;
 
     const input = section.querySelector('[data-role="format"]');
-    const menu = section.querySelector('[data-role="menu"]');
     const previewSpan = section.querySelector('[data-role="preview"]');
     const statusDiv = section.querySelector('[data-role="status"]');
     const contentDiv = section.querySelector('[data-role="content"]');
@@ -337,8 +544,6 @@ function renderStockFormatEditor(section, api, context) {
     let savedValue = null;
     let previewTimer = null;
     let previewSeq = 0;
-    let matches = [];
-    let activeIndex = 0;
 
     function setEnabled(value) {
         enabled = isTrue(value);
@@ -351,145 +556,8 @@ function renderStockFormatEditor(section, api, context) {
         statusDiv.textContent = text;
     }
 
-    // --- Autocompletion ---
-
-    // Return the placeholder being typed at the caret, i.e. the text after an unclosed "{"
-    function currentToken() {
-        if (input.selectionStart !== input.selectionEnd) {
-            return null;
-        }
-
-        const caret = input.selectionStart ?? input.value.length;
-        const before = input.value.slice(0, caret);
-        const open = before.lastIndexOf('{');
-
-        // No brace, or an escaped brace ("{{")
-        if (open < 0 || before[open - 1] === '{') {
-            return null;
-        }
-
-        const token = before.slice(open + 1);
-
-        if (!/^[\w.:]*$/.test(token)) {
-            return null;
-        }
-
-        return { start: open + 1, end: caret, token };
-    }
-
-    function closeMenu() {
-        menu.style.display = 'none';
-        matches = [];
-    }
-
-    function renderMenu() {
-        menu.innerHTML = matches
-            .map(
-                (p, i) => `<div data-index="${i}" style="display: flex; justify-content: space-between; gap: 12px;
-                    padding: 4px 10px; cursor: pointer;
-                    ${i === activeIndex ? 'background: var(--mantine-primary-color-light, #e7f5ff);' : ''}">
-                    <span style="font-family: monospace;">{${escapeHtml(p.text)}}</span>
-                    <span style="font-size: 0.85em; opacity: 0.75;">${escapeHtml(p.description)}</span>
-                </div>`
-            )
-            .join('');
-
-        menu.querySelector(`[data-index="${activeIndex}"]`)?.scrollIntoView({ block: 'nearest' });
-    }
-
-    function updateMenu() {
-        const token = currentToken();
-
-        if (!token) {
-            closeMenu();
-            return;
-        }
-
-        const query = token.token.toLowerCase();
-        const closed = input.value[token.end] === '}';
-
-        // Placeholders starting with the typed text first, then those containing it
-        const startsWith = STOCK_PLACEHOLDERS.filter((p) => p.text.toLowerCase().startsWith(query));
-        const contains = STOCK_PLACEHOLDERS.filter(
-            (p) => !startsWith.includes(p)
-                && (p.text.toLowerCase().includes(query) || p.description.toLowerCase().includes(query))
-        );
-        const found = [...startsWith, ...contains];
-
-        // Nothing to suggest, or the placeholder is already complete
-        if (found.length === 0 || (closed && found.some((p) => p.text === token.token))) {
-            closeMenu();
-            return;
-        }
-
-        matches = found;
-        activeIndex = Math.min(activeIndex, matches.length - 1);
-        menu.style.display = 'block';
-        renderMenu();
-    }
-
-    function accept(placeholder) {
-        const token = currentToken();
-
-        if (!token) {
-            return;
-        }
-
-        const value = input.value;
-        const closing = value[token.end] === '}' ? '' : '}';
-
-        input.value = value.slice(0, token.start) + placeholder.text + closing + value.slice(token.end);
-
-        const caret = token.start + placeholder.text.length + 1;
-        input.setSelectionRange(caret, caret);
-
-        closeMenu();
-        schedulePreview();
-    }
-
-    input.addEventListener('input', () => {
-        activeIndex = 0;
-        updateMenu();
-        schedulePreview();
-    });
-
-    input.addEventListener('keydown', (event) => {
-        if (matches.length === 0) {
-            return;
-        }
-
-        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-            event.preventDefault();
-            const step = event.key === 'ArrowDown' ? 1 : -1;
-            activeIndex = (activeIndex + step + matches.length) % matches.length;
-            renderMenu();
-        } else if (event.key === 'Enter' || event.key === 'Tab') {
-            event.preventDefault();
-            accept(matches[activeIndex]);
-        } else if (event.key === 'Escape') {
-            event.preventDefault();
-            event.stopPropagation();
-            closeMenu();
-        }
-    });
-
-    // Caret moved without changing the text
-    input.addEventListener('keyup', (event) => {
-        if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
-            updateMenu();
-        }
-    });
-    input.addEventListener('click', updateMenu);
-    input.addEventListener('blur', closeMenu);
-
-    // mousedown (not click), so the input keeps the focus and the caret position
-    menu.addEventListener('mousedown', (event) => {
-        event.preventDefault();
-        const index = parseInt(event.target.closest('[data-index]')?.dataset?.index, 10);
-        if (!Number.isNaN(index)) {
-            accept(matches[index]);
-        }
-    });
+    attachPlaceholderAutocomplete(input, STOCK_PLACEHOLDERS);
+    input.addEventListener('input', schedulePreview);
 
     // --- Preview and saving ---
 
