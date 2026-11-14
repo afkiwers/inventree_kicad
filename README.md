@@ -282,31 +282,38 @@ If activated KiCad will show stock data inside the symbol chooser. The data will
 
 ![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/stock_data_settings.png)
 
-Users have the option to determine the presentation style of stock data through the **Stock Count Display Format** as shown above. In this setting, {0} represents the item description, while {1} represents the stock information as a numerical value. Using those placeholders, users can customize how this data is merged and showcased according to their preferences. An example of how this would look is shown below. 
+**Please Note:** Due to recent KiCad changes, the stock information is **NOW** transferred into the schematic.
 
-**Please Note:** The stock information is not transferred into the schematic. It is only visible inside the symbol chooser!
+Users have the option to determine the presentation style of stock data through the **Stock Count Display Format** as shown above. In this setting, {0} represents the item description, while {1} represents the stock information as a numerical value. Using those placeholders, users can customize how this data is merged and showcased according to their preferences. An example of how this would look is shown below. 
 
 ![image](https://raw.githubusercontent.com/afkiwers/inventree_kicad/main/images/stock_data.png)
 
-### Advanced Formatting
+### Formatting
 
-In addition to `{0}` and `{1}`, an object named `part` is available with the following attributes:  
+The following part attributes are available, used as `{part.<parameter>}` (e.g. `{part.name}`):
 
-| Parameter     | Type  | Description |
-| ------------- | ----- | ----------- |
-| `name`        | `str` | The name of the part. |
-| `IPN`         | `str` | The internal part number. |
-| `description` | `str` | The part’s description (equivalent to `{0}`). |
-| `stock`       | `int` | The unallocated stock count for this part (equivalent to `{1}`). |
-| `revision`    | `str` | The part’s revision. |
-| `used_in`     | `int` | The number of BOMs this part appears in. |
+| Parameter     | Type      | Description |
+| ------------- | --------- | ----------- |
+| `name`        | `str`     | The name of the part. |
+| `IPN`         | `str`     | The internal part number. |
+| `description` | `str`     | The part’s description (equivalent to `{0}`). |
+| `revision`    | `str`     | The part’s revision. |
+| `stock`       | `Decimal` | The unallocated stock count for this part (equivalent to `{1}`). |
+| `used_in`     | `int`     | The number of assemblies whose BOM uses this part. |
 
-**Note:** Both `part.stock` and `part.used_in` are integers, not strings.  
-When formatting these values, it’s recommended to include format specifiers to handle decimals gracefully.  
+**Note:** `part.used_in` is only looked up if `{part.used_in}` is part of the format. It uses the same count as InvenTree (including variants, substitutes and inherited BOMs), which requires several additional database queries for every part in a KiCad part list. Large categories can therefore load noticeably slower when it is used. Leave it out of the format if you don't need it; without it, no additional queries are made.
+
+**Note:** `part.stock` is a number, not a string.  
+When formatting this value, it’s recommended to include format specifiers to handle decimals gracefully.  
 
 For example: `{part.stock:.0f}`. Here, (`:.0f`) formats the number as a floating point, with no padding, and zero digits trailing the decimal point. For more details, see [Python’s documentation on format strings](https://docs.python.org/3/library/string.html#formatstrings).
 
-Using the string example from the image above we can rewrite `[In Stock: {1}] >> {0}` as `Stock: {part.stock:.0f}] >> {part.description}`.
+### Format Editor
+
+When **Display Available Stock** is enabled, the **Plugin Configuration** panel on the plugin's settings page provides an editor for the **Stock Count Display Format**. Typing `{` lists the available placeholders (insert one with the arrow keys and `Enter`/`Tab`, or by clicking it). A preview using an example part is shown below the input, and the format is saved automatically once it is valid.
+
+### Legacy Format
+Still supported: `{0}` and `{1}` which will display as:  {1} Stock information, {0} description of the part.
 
 ## Use in KiCad
 

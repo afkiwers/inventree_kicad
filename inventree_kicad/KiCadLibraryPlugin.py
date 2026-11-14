@@ -208,6 +208,9 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
         return {
             "supplier_filter_url": f"/{self.base_url}api/supplier-filter/",
             "enable_setting_url": f"/api/plugins/{self.slug}/settings/KICAD_ENABLE_MANUFACTURER_DATA/",
+            "stock_enable_setting_url": f"/api/plugins/{self.slug}/settings/KICAD_ENABLE_STOCK_COUNT/",
+            "stock_format_setting_url": f"/api/plugins/{self.slug}/settings/KICAD_ENABLE_STOCK_COUNT_FORMAT/",
+            "stock_format_preview_url": f"/{self.base_url}api/stock-format-preview/",
         }
 
     def setup_urls(self):
@@ -226,6 +229,12 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
                 viewsets.SupplierFilter.as_view(),
                 {"plugin": self},
                 name="kicad-supplier-filter",
+            ),
+            re_path(
+                r"^stock-format-preview/$",
+                viewsets.StockFormatPreview.as_view(),
+                {"plugin": self},
+                name="kicad-stock-format-preview",
             ),
             re_path("", include(api_category_router.urls)),
         ]
