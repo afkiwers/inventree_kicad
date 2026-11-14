@@ -202,7 +202,11 @@ class PartMixin:
             "parameters_list__template",
         )
 
-        return serializers.KicadPartSerializer.annotate_queryset(queryset)
+        # The stock annotations are expensive subqueries, so only add them if needed
+        if serializers.KicadPartSerializer.stock_count_enabled(self.kwargs["plugin"]):
+            queryset = serializers.KicadPartSerializer.annotate_queryset(queryset)
+
+        return queryset
 
     def get_serializer(self, *args, **kwargs):
         """Add the parent plugin instance to the serializer contenxt"""

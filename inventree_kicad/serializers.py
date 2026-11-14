@@ -54,7 +54,26 @@ class KicadPartSerializer(serializers.ModelSerializer):
         we pass it in via the kwargs.
         """
         self.plugin = kwargs.pop("plugin")
+        self.enable_stock_count = self.stock_count_enabled(self.plugin)
         super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def stock_count_enabled(plugin):
+        """Return True if stock information should be computed and exported."""
+        return str2bool(plugin.get_setting("KICAD_ENABLE_STOCK_COUNT", False))
+
+    def get_fields(self):
+        """Only expose the 'stock' field if stock information is enabled.
+
+        The stock annotations are only added to the queryset when the setting is
+        enabled (see annotate_queryset), so the field must be dropped otherwise.
+        """
+        fields = super().get_fields()
+
+        if not self.enable_stock_count:
+            fields.pop("stock", None)
+
+        return fields
 
     class Meta:
         """Metaclass defining serializer fields"""
@@ -143,22 +162,17 @@ class KicadPartSerializer(serializers.ModelSerializer):
         This will allow users to display stock information
         if they enable it.
         """
-        if not hasattr(self, "enable_stock_count"):
-            self.enable_stock_count = str2bool(
-                self.plugin.get_setting("KICAD_ENABLE_STOCK_COUNT", False)
-            )
-
-        if not hasattr(self, "stock_count_format"):
-            self.stock_count_format = self.plugin.get_setting(
-                "KICAD_ENABLE_STOCK_COUNT_FORMAT", False
-            )
-
         description = part.description
 
-        # In-stock quantity should be annotated to the queryset
-        stock_count = self.get_unallocated_stock(part)
-
         if self.enable_stock_count:
+            if not hasattr(self, "stock_count_format"):
+                self.stock_count_format = self.plugin.get_setting(
+                    "KICAD_ENABLE_STOCK_COUNT_FORMAT", False
+                )
+
+            # In-stock quantity should be annotated to the queryset
+            stock_count = self.get_unallocated_stock(part)
+
             try:
                 part_ = SimpleNamespace(
                     name=part.name,
