@@ -64,7 +64,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             "description": _(
                 "This will be displayed after the part's description in KiCad (right column). Note: {1} contains the Stock information, {0} the description of the part."
             ),
-            "default": "[Stock: {1}] {0}",
+            "default": "[Stock: {part.stock:.0f}] {part.description}",
         },
         "DEFAULT_FOR_MISSING_SYMBOL": {
             "name": _("Backup KiCad Symbol"),
@@ -208,6 +208,9 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
         return {
             "supplier_filter_url": f"/{self.base_url}api/supplier-filter/",
             "enable_setting_url": f"/api/plugins/{self.slug}/settings/KICAD_ENABLE_MANUFACTURER_DATA/",
+            "stock_enable_setting_url": f"/api/plugins/{self.slug}/settings/KICAD_ENABLE_STOCK_COUNT/",
+            "stock_format_setting_url": f"/api/plugins/{self.slug}/settings/KICAD_ENABLE_STOCK_COUNT_FORMAT/",
+            "stock_format_preview_url": f"/{self.base_url}api/stock-format-preview/",
         }
 
     def setup_urls(self):
@@ -226,6 +229,12 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
                 viewsets.SupplierFilter.as_view(),
                 {"plugin": self},
                 name="kicad-supplier-filter",
+            ),
+            re_path(
+                r"^stock-format-preview/$",
+                viewsets.StockFormatPreview.as_view(),
+                {"plugin": self},
+                name="kicad-stock-format-preview",
             ),
             re_path("", include(api_category_router.urls)),
         ]
@@ -273,4 +282,3 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             # Anything else, redirect to our top-level v1 page
             re_path("^.*$", viewsets.Index.as_view(), name="kicad-index"),
         ]
-

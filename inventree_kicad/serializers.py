@@ -1,6 +1,6 @@
 import logging
 from decimal import Decimal
-from types import SimpleNamespace
+from functools import cached_property
 
 from common.models import Parameter
 from company.models import Company, ManufacturerPart, SupplierPart
@@ -38,6 +38,40 @@ KICAD_RESERVED_FIELDS = {
 def _determine_part_name(part, use_ipn: bool = False) -> str:
     """Resolve part name for KiCad based on plugin setting."""
     return part.IPN or part.name if use_ipn else part.name
+
+
+class StockFormatPart:
+    """The 'part' object available in the stock count display format, e.g. {part.name}."""
+
+    def __init__(self, part, stock):
+        self._part = part
+        self.name = part.name
+        self.IPN = part.IPN
+        self.description = part.description
+        self.stock = stock
+        self.revision = part.revision
+
+    @cached_property
+    def used_in(self):
+        """Number of assemblies whose BOM uses this part.
+
+        This needs several database queries per part, so it is only evaluated
+        if the format string actually contains {part.used_in}.
+        """
+        return self._part.used_in_count
+
+
+def format_stock_description(format_string: str, part, stock) -> str:
+    """Format the KiCad description of a part using the stock count display format.
+
+    {0} is the part description, {1} the formatted stock count, and {part.<attr>}
+    gives access to selected part attributes. Raises an exception if the format is invalid.
+    """
+    part_ = StockFormatPart(part, stock)
+
+    return format_string.format(
+        part.description, decimal2string(stock), part=part_
+    ).strip()
 
 
 class KicadPartSerializer(serializers.ModelSerializer):
@@ -174,17 +208,9 @@ class KicadPartSerializer(serializers.ModelSerializer):
             stock_count = self.get_unallocated_stock(part)
 
             try:
-                part_ = SimpleNamespace(
-                    name=part.name,
-                    IPN=part.IPN,
-                    description=part.description,
-                    stock=stock_count,
-                    revision=part.revision,
+                description = format_stock_description(
+                    self.stock_count_format, part, stock_count
                 )
-
-                description = self.stock_count_format.format(
-                    part.description, decimal2string(stock_count), part=part_
-                ).strip()
             except Exception:
                 logger.exception("Failed to format stock count")
 

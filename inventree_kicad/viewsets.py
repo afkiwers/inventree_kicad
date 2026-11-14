@@ -1,3 +1,6 @@
+from decimal import Decimal
+from types import SimpleNamespace
+
 from django.shortcuts import get_object_or_404
 from InvenTree.helpers import str2bool
 from part.models import Part, PartCategory
@@ -58,6 +61,51 @@ class SupplierFilter(views.APIView):
 
         plugin.set_supplier_filter(suppliers)
         return response.Response({"suppliers": plugin.get_supplier_filter()})
+
+
+class StockFormatPreview(views.APIView):
+    """Preview the stock count display format using an example part.
+
+    - POST: {"format": "<format string>"} -> {"preview": "<formatted description>"}
+      or a 400 response with {"error": "<reason>"} if the format is invalid
+    """
+
+    permission_classes = [
+        permissions.IsAdminUser,
+    ]
+
+    EXAMPLE_PART = SimpleNamespace(
+        name="RES-10K-0603",
+        IPN="R-0001",
+        description="Resistor 10k 1% 0603",
+        revision="A",
+        used_in_count=3,
+    )
+    EXAMPLE_STOCK = Decimal(1250)
+
+    def post(self, request, *args, **kwargs):
+        """Return the example description for the provided format string"""
+        format_string = request.data.get("format", "")
+
+        if not isinstance(format_string, str):
+            return response.Response({"error": "Expected a string"}, status=400)
+
+        try:
+            preview = serializers.format_stock_description(
+                format_string, self.EXAMPLE_PART, self.EXAMPLE_STOCK
+            )
+        except KeyError as exc:
+            error = f"Unknown placeholder {{{exc.args[0]}}}"
+        except IndexError:
+            error = "Only {0} (description) and {1} (stock) are available"
+        except AttributeError as exc:
+            error = f"Unknown part attribute: {getattr(exc, 'name', None) or exc}"
+        except Exception as exc:
+            error = str(exc)
+        else:
+            return response.Response({"preview": preview})
+
+        return response.Response({"error": error}, status=400)
 
 
 class CategoryApi(rest_viewsets.ViewSet):
