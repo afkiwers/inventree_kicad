@@ -64,7 +64,7 @@ class KiCadLibraryPlugin(UrlsMixin, AppMixin, SettingsMixin, InvenTreePlugin):
             "description": _(
                 "This will be displayed after the part's description in KiCad (right column). Note: {1} contains the Stock information, {0} the description of the part."
             ),
-            "default": "[Stock: {1}] {0}",
+            "default": "[Stock: {part.stock:.0f}] {part.description}",
         },
         "DEFAULT_FOR_MISSING_SYMBOL": {
             "name": _("Backup KiCad Symbol"),
